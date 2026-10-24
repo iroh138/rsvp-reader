@@ -45,7 +45,7 @@
 | ARH-01 | Integritet lokalnih podataka (IndexedDB): uvoz atomičan, prekid uvoza ne ostavlja polovične zapise, prekoračenje kvote obrađeno | B | Test prekida (zatvaranje taba tokom uvoza), test kvote | app-product-architecture | Vlasnik | Nedostaje dokaz |
 | ARH-02 | Migracije `DB_VERSION` / `PROCESSOR_VERSION` na reprezentativnoj biblioteci: pozicije čitanja se ne pomeraju | B | Test: biblioteka iz stare verzije → nova verzija | app-product-architecture | Vlasnik | Nedostaje dokaz |
 | PRD-03 | Validacija potrebe pre veće investicije (iOS, naplata) | R | Beleška: konkurencija, 5–10 korisničkih razgovora ili test stranica | app-product-architecture | Vlasnik | Delimično: desk research (`docs/phase-1/01-validacija-potrebe.md`, 2026-10-24) — H2/H3 opovrgnute, H4/H5 neproverene; razgovori sa korisnicima nedostaju |
-| ARH-03 | ADR beleške za rane odluke | odl. | `docs/adr/` | app-product-architecture | Vlasnik | Delimično: ADR 0001 (prihvaćeno), ADR 0002 (predlog), 2026-10-24 |
+| ARH-03 | ADR beleške za rane odluke | odl. | `docs/adr/` | app-product-architecture | Vlasnik | Delimično: ADR 0001 (prihvaćeno), ADR 0002–0004 (predlog), 2026-10-24 |
 | DEX-01 | Izvoz podataka: pozicije postoje (`index.html:1743`), izvoz/rezervna kopija biblioteke ne postoji | R | Test izvoz → uvoz na drugom uređaju | app-product-architecture | Vlasnik | Delimično |
 
 ## Bezbednost
@@ -55,7 +55,7 @@
 | SEC-03 | Nepouzdani ulazi: PDF (`isEvalSupported:false` na svim `getDocument`, limit veličine, korpus oštećenih/zlonamernih PDF-ova) i uvoz pozicija (validacija tipa i opsega; poznat bag `index.html:1762, 1782`) | B | Testovi sa negativnim slučajevima | app-security | Vlasnik | Neuspešno (validacija uvoza pozicija, launch-check 2026-10-24) |
 | SEC-04 | Produkciona konfiguracija: HTTPS, CSP (header ili meta), bez spoljnih resursa, bez izloženih fajlova, build bez debug panela | B | Provera headera na prod URL-u + pregled builda | app-security | Vlasnik | Nedostaje dokaz (nema CSP-a, debug paneli u produkciji) |
 | SEC-06 | SCA zavisnosti; pdf.js 3.11.174 je zastareo (CVE-2024-4367 ublažen kroz `isEvalSupported:false`) | R | SCA izveštaj + plan nadogradnje | app-security | Vlasnik | Nedostaje dokaz |
-| SEC-07 | Threat model: PDF parser, lanac isporuke (hosting, SW, store build), uvoz pozicija | R | `docs/threat-model.md` | app-security | Vlasnik | Nedostaje dokaz |
+| SEC-07 | Threat model: PDF parser, lanac isporuke (hosting, SW, store build), uvoz pozicija | R | `docs/threat-model.md` | app-security | Vlasnik | Nacrt (P1–P5), čeka ljudski pregled; 2026-10-24 |
 
 ## Privatnost i pravo (stavke označene † zahtevaju stručnu proveru)
 

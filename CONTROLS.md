@@ -40,12 +40,12 @@
 
 | ID | Kontrola i provera | Gate | Dokaz | Skill | Vlasnik | Status / dokaz (commit, datum) |
 |---|---|---|---|---|---|---|
-| PRD-01 | Acceptance criteria za 5 kritičnih tokova (PLAN.md §2); UAT na Android, iOS i desktopu | B | UAT zapisnik po uređaju | app-product-architecture | Vlasnik | Nedostaje dokaz (postoje in-app „Acceptance checks“, bez zapisa) |
+| PRD-01 | Acceptance criteria za 5 kritičnih tokova (PLAN.md §2); UAT na Android, iOS i desktopu | B | UAT zapisnik po uređaju | app-product-architecture | Vlasnik | Delimično: AC napisani (`docs/phase-1/02-zahtevi.md`, 2026-10-24); UAT nedostaje |
 | PRD-02 | MVP ispunjava obećanu vrednost: cele knjige iz tekstualnog PDF-a, offline, tačan tempo | B | UAT + 3 realne knjige različitog formata | app-product-architecture | Vlasnik | Nedostaje dokaz |
 | ARH-01 | Integritet lokalnih podataka (IndexedDB): uvoz atomičan, prekid uvoza ne ostavlja polovične zapise, prekoračenje kvote obrađeno | B | Test prekida (zatvaranje taba tokom uvoza), test kvote | app-product-architecture | Vlasnik | Nedostaje dokaz |
 | ARH-02 | Migracije `DB_VERSION` / `PROCESSOR_VERSION` na reprezentativnoj biblioteci: pozicije čitanja se ne pomeraju | B | Test: biblioteka iz stare verzije → nova verzija | app-product-architecture | Vlasnik | Nedostaje dokaz |
-| PRD-03 | Validacija potrebe pre veće investicije (iOS, naplata) | R | Beleška: konkurencija, 5–10 korisničkih razgovora ili test stranica | app-product-architecture | Vlasnik | Nedostaje dokaz |
-| ARH-03 | ADR beleške za rane odluke | odl. | `docs/adr/` | app-product-architecture | Vlasnik | — |
+| PRD-03 | Validacija potrebe pre veće investicije (iOS, naplata) | R | Beleška: konkurencija, 5–10 korisničkih razgovora ili test stranica | app-product-architecture | Vlasnik | Delimično: desk research (`docs/phase-1/01-validacija-potrebe.md`, 2026-10-24) — H2/H3 opovrgnute, H4/H5 neproverene; razgovori sa korisnicima nedostaju |
+| ARH-03 | ADR beleške za rane odluke | odl. | `docs/adr/` | app-product-architecture | Vlasnik | Delimično: ADR 0001 (prihvaćeno), ADR 0002 (predlog), 2026-10-24 |
 | DEX-01 | Izvoz podataka: pozicije postoje (`index.html:1743`), izvoz/rezervna kopija biblioteke ne postoji | R | Test izvoz → uvoz na drugom uređaju | app-product-architecture | Vlasnik | Delimično |
 
 ## Bezbednost
@@ -65,7 +65,7 @@
 | PRV-02† | DPA sa hosting provajderom (obrađuje IP adrese) | R | Prihvaćen DPA | app-privacy-legal | Vlasnik | Nedostaje dokaz |
 | PRV-04† | Prenosi van EEA: Google Fonts (SAD) pri svakom učitavanju; lokacija hostinga | B | 0 zahteva van sopstvenog origin-a (mrežni log, čist profil) ili dokumentovan osnov prenosa | app-privacy-legal | Vlasnik | Neuspešno (`index.html:18-20`, `sw.js`; launch-check 2026-10-24) |
 | PRV-08† | Predstavnik u EU (GDPR čl. 27) ili dokumentovan izuzetak čl. 27(2) | B | Pravna beleška | app-privacy-legal | Vlasnik | Nedostaje dokaz |
-| LEG-01† | Distribucija i prodaja dozvoljene: Apple/Google developer nalozi za srpsko lice; trader status prema EU DSA u obe prodavnice; Google Play merchant podrška za Srbiju; **patentni rizik RSVP/ORP prikaza (crveno pivot slovo)** | B | Aktivni nalozi + pravna beleška o patentima | app-privacy-legal | Vlasnik | Nedostaje dokaz |
+| LEG-01† | Distribucija i prodaja dozvoljene: Apple/Google developer nalozi za srpsko lice; trader status prema EU DSA u obe prodavnice; Google Play merchant podrška za Srbiju; **patentni rizik RSVP/ORP prikaza (crveno pivot slovo)** | B | Aktivni nalozi + pravna beleška o patentima | app-privacy-legal | Vlasnik | Nedostaje dokaz. Nalazi: Google Play merchant podržava Srbiju; Apple isplata nepotvrđena; EP2872984B1 identifikovan, status po zemljama neproveren (`docs/phase-1/03-memo-naplata.md`) |
 | LEG-02† | Poreski model sproveden (MoR ili sopstveni PDV/OSS) — **uslovno** | B | Odluka + mišljenje knjigovođe | app-privacy-legal | Vlasnik | Uslovno |
 | LEG-03† | EAA (EU Accessibility Act): da li je aplikacija „softver namenjen e-knjigama“ i važi li izuzetak za mikropreduzeća | B | Pravna beleška; ako važi, WCAG 2.2 AA dokaz | app-privacy-legal | Vlasnik | Nedostaje dokaz |
 | LEG-04 | Licence: `LICENSE` za sopstveni kod, Apache-2.0 tekst za pdf.js, OFL za fontove | R | Fajlovi licenci u repou i u buildovima | app-privacy-legal | Vlasnik | Nedostaje dokaz (nema `LICENSE`) |

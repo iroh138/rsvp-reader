@@ -47,7 +47,8 @@ Jedan statički kod (HTML/JS, pdf.js u Web Workeru, service worker) koji se ispo
 1. **Problem i zahtevi** — odluka o naplati, pravnom licu i jezicima; validacija potrebe. → PRD-01 (kriterijumi), PRD-03
 2. **Arhitektura i dizajn** — ADR za odluke iz §5; threat model; procena Apple 4.2. → ARH-03, SEC-07  
    _Stanje 2026-10-24: `docs/architecture.md`, `docs/threat-model.md`, ADR 0001–0004 (nacrti, čekaju pregled)._
-3. **Development foundation** — podela koda, testovi CORE-a u CI-ju, pinovan CI, `LICENSE`, `SECURITY.md`, uklonjeni debug paneli iz produkcije. → GOV-02, GOV-03, INF-02, QA-05, LEG-04, AI-01, AI-02
+3. **Development foundation** — podela koda, testovi CORE-a u CI-ju, pinovan CI, `LICENSE`, `SECURITY.md`, uklonjeni debug paneli iz produkcije. → GOV-02, GOV-03, INF-02, QA-05, LEG-04, AI-01, AI-02  
+   _Stanje 2026-10-24: grana `phase-3-foundation` (moduli, testovi, build, CI, licence); čeka PR pregled i podešavanja vlasnika._
 4. **Iterativna implementacija** — lokalni fontovi; CSP; validacija uvoza pozicija; nadogradnja pdf.js na 4.x; izvoz biblioteke; i18n UI-ja; TWA i iOS omotač; naplata (ako je odlučena). → PRV-04, SEC-03, SEC-06, DEX-01, ARH-02, BIL-*
 5. **Security i quality hardening** — korpus zlonamernih PDF-ova, test kvote i prekida, kontrast i pristupačnost, performanse na velikim knjigama. → ARH-01, QA-03, UX-02, AI-03
 6. **Release validation** — UAT po matrici platformi, dokazi upisani uz release commit. → PRD-01, PRD-02, QA-01, QA-04, INF-01, INF-04

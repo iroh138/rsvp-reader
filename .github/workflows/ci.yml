@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# CI (INF-02): every third-party action is pinned to a full commit SHA; the token is read-only;
+# no pull_request_target / workflow_run; no secrets are used. Deployment is not part of this workflow yet.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - run: npm run build
+      - name: Built service worker has no placeholders and parses
+        run: |
+          ! grep -E '__[A-Z]+__' dist/sw.js
+          node --check dist/sw.js
+
+  secret-scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  workflow-policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Every action is pinned to a full commit SHA
+        run: |
+          bad=$(grep -RhoE '^\s*-?\s*uses:\s*[^ #]+' .github/workflows | sed -E 's/.*uses:\s*//' | grep -vE '^\./' | grep -vE '@[0-9a-f]{40}$' || true)
+          if [ -n "$bad" ]; then echo "Not pinned to a commit SHA:"; echo "$bad"; exit 1; fi
+      - name: No pull_request_target or workflow_run triggers
+        run: |
+          ! grep -RnE '^\s*(pull_request_target|workflow_run)\s*:' .github/workflows

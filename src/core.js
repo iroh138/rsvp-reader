@@ -234,6 +234,8 @@ export const lowerBound = (a, v) => { let lo = 0, hi = a.length; while (lo < hi)
 // grows with the page, or (C) it sits at the exact height of headers already confirmed by A or B.
 // A and C also require a gap below/above it larger than normal line spacing, so body text is never taken.
 export function romanValue(w) { const v = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 }; let n = 0; for (let i = 0; i < w.length; i++) { const a = v[w[i]], b = v[w[i + 1]] || 0; n += a < b ? -a : a; } return n; }
+// Rule B: how many other words a page-number line in the flow of the text may have ("Page 12", "12 Chapter One").
+export const MAX_WORDS_BESIDE_NUMBER = 3;
 export function applyCleanup(pdata) {
   const groups = new Map(), numbered = new Map(), cands = [];
   pdata.forEach((pd, p) => {
@@ -253,7 +255,9 @@ export function applyCleanup(pdata) {
       const pos = order.indexOf(k);
       const nb = band === 't' ? ls[order[pos + 1]] : ls[order[pos - 1]];
       const apart = !nb || !lineGap || Math.abs(l.y - nb.y) > lineGap * 1.3;
-      const c = { p, k, yn: l.yn, band, apart };
+      // words besides page-number-like tokens: "— 12 —" and "Page 12" have 0-1, a body sentence has many
+      const words = l.sig.split(' ').filter(w => w !== '#').length;
+      const c = { p, k, yn: l.yn, band, apart, words };
       cands.push(c);
       if (apart) { const key = band + '|' + l.sig; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(c); }
       // B: a number that equals the page index plus a constant offset
@@ -295,8 +299,12 @@ export function applyCleanup(pdata) {
   // B
   for (const [, arr] of numbered) {
     if (new Set(arr.map(c => c.p)).size < 3) continue;
-    // a real page number repeats at the same height on other pages; a lone match ("CHAPTER 1" on page 1) does not
-    const ok = arr.filter(c => arr.some(o => o !== c && o.p !== c.p && o.band === c.band && Math.abs(o.yn - c.yn) < 0.004));
+    // a real page number repeats at the same height on other pages; a lone match ("CHAPTER 1" on page 1) does not.
+    // N1 (docs/pdf-corpus.md): a line set off from the body by a larger gap may carry a title ("12 The Book Title"),
+    // but a line in the flow of the body text must be (almost) only the number, or a body sentence that happens to
+    // contain the page number ("Page 12 begins with ...") would be silently dropped.
+    const ok = arr.filter(c => (c.apart || c.words <= MAX_WORDS_BESIDE_NUMBER)
+      && arr.some(o => o !== c && o.p !== c.p && o.band === c.band && Math.abs(o.yn - c.yn) < 0.004));
     if (new Set(ok.map(c => c.p)).size >= 3) mark(ok, 'page numbers');
   }
   // C

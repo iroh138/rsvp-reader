@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Verifies vendored third-party files against vendor/SHA256SUMS (recorded from the official npm package
-// pdfjs-dist@3.11.174). Fails the build if a vendored file was changed or added without updating the list.
+// Verifies vendored third-party files against vendor/SHA256SUMS (recorded from the official npm packages
+// pdfjs-dist@3.11.174 and Fontsource 5.3.0, see THIRD_PARTY_NOTICES.md). Fails the build if a vendored file was changed or added without updating the list.
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -15,8 +15,10 @@ export async function verifyVendor() {
     const got = createHash('sha256').update(await readFile(join(root, file))).digest('hex');
     if (got !== want) throw new Error(`Checksum mismatch for ${file}: expected ${want}, got ${got}`);
   }
-  for (const f of await readdir(join(root, 'vendor'))) {
-    if (f !== 'SHA256SUMS' && !listed.has(`vendor/${f}`)) throw new Error(`vendor/${f} is not listed in vendor/SHA256SUMS`);
+  for (const e of await readdir(join(root, 'vendor'), { recursive: true, withFileTypes: true })) {
+    if (!e.isFile()) continue;
+    const f = relative(root, join(e.parentPath, e.name)).split(sep).join('/');
+    if (f !== 'vendor/SHA256SUMS' && !listed.has(f)) throw new Error(`${f} is not listed in vendor/SHA256SUMS`);
   }
   return sums.length;
 }

@@ -20,7 +20,7 @@ npm run serve     # serve dist/ on http://localhost:8080
 
 Open the app with `?dev` to show the in-app acceptance checks and the paste-text panel.
 
-Browser smoke tests (optional, Python + Playwright): `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf` and `python3 tests/e2e/offline.py http://localhost:8080/`. Test PDFs are generated with `python3 scripts/make-fixtures.py`.
+Browser smoke tests (optional, Python + Playwright): `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf` `python3 tests/e2e/offline.py http://localhost:8080/`, `python3 tests/e2e/fonts.py http://localhost:8080/` (no third-party requests, bundled fonts in use) and `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf` (update from a previous build keeps the library). Test PDFs are generated with `python3 scripts/make-fixtures.py`.
 
 Deploy the contents of `dist/`, not the repository root.
 

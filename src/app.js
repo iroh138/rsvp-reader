@@ -93,43 +93,16 @@ function settings(get, val) {
   } catch (e) { return {}; }
 }
 
-/* ===== pdf.js loading: background worker if possible, main thread otherwise ===== */
-const PDFJS = ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'];
-const PDFJS_WORKER = ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'];
+/* ===== pdf.js loading: always the vendored copy from this origin (no CDN; CONTROLS.md PRV-04) ===== */
 let pdfjsPromise = null, workerMode = '';
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = () => res(src); s.onerror = () => { s.remove(); rej(new Error('Could not load ' + src)); }; document.head.appendChild(s); });
 }
-async function loadFirst(list) { let err; for (const u of list) { try { return await loadScript(u); } catch (e) { err = e; } } throw err; }
-function tryWorker(url) {
-  url = new URL(url, location.href).href;
-  return new Promise(res => {
-    let w;
-    try {
-      const code = `try{importScripts(${JSON.stringify(url)});postMessage({rsvpWorker:'ok'})}catch(e){postMessage({rsvpWorker:'fail'})}`;
-      w = new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
-    } catch (e) { res(null); return; }
-    const done = ok => { clearTimeout(t); w.removeEventListener('message', onMsg); if (!ok) w.terminate(); res(ok ? w : null); };
-    const onMsg = e => { if (e.data && e.data.rsvpWorker) done(e.data.rsvpWorker === 'ok'); };
-    const t = setTimeout(() => done(false), 10000);
-    w.addEventListener('message', onMsg);
-    w.addEventListener('error', () => done(false));
-  });
-}
-const HOSTED = true;   // set to true by the hosted (installable, offline) build: pdf.js from local files, service worker
 function ensurePdfjs() {
   if (!pdfjsPromise) pdfjsPromise = (async () => {
-    if (HOSTED) {
-      if (!window.pdfjsLib) await loadScript('vendor/pdf.min.js');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.js', location.href).href;
-      workerMode = 'background worker';
-      return;
-    }
-    const libUrl = window.pdfjsLib ? null : await loadFirst(PDFJS);
-    const workerUrl = libUrl ? libUrl.replace('pdf.min.js', 'pdf.worker.min.js') : PDFJS_WORKER[0];
-    const w = (await tryWorker(workerUrl)) || (workerUrl !== PDFJS_WORKER[1] ? await tryWorker(PDFJS_WORKER[1]) : null);
-    if (w) { pdfjsLib.GlobalWorkerOptions.workerPort = w; workerMode = 'background worker'; }
-    else { await loadFirst(PDFJS_WORKER); workerMode = 'main thread'; }
+    if (!window.pdfjsLib) await loadScript('vendor/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.js', location.href).href;
+    workerMode = 'background worker';
   })().catch(e => { pdfjsPromise = null; throw e; });
   return pdfjsPromise;
 }
@@ -1050,7 +1023,7 @@ $('installBtn').onclick = async () => {
   installEvent = null; $('installBtn').hidden = true;
 };
 window.addEventListener('appinstalled', () => { $('installBtn').hidden = true; $('installNote').hidden = true; });
-if (HOSTED) {
+{
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (ios && !standalone) { $('installNote').hidden = false; $('installNote').textContent = 'To install on iPhone or iPad: tap Share, then “Add to Home Screen”.'; }

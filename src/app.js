@@ -7,6 +7,7 @@ import {
   prevSentence, nextSentence, Book, extractLines, ROMAN, lineSig,
   lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages
 } from './core.js';
+import { sanitizeSettings, parsePositionsExport } from './settings.js';
 
 // Developer panels are shown only with ?dev in the address.
 if (new URLSearchParams(location.search).has('dev')) document.documentElement.classList.add('dev');
@@ -91,6 +92,21 @@ function settings(get, val) {
     const cur = JSON.parse(localStorage.getItem('rsvp-settings') || '{}');
     localStorage.setItem('rsvp-settings', JSON.stringify(Object.assign(cur, val)));
   } catch (e) { return {}; }
+}
+// Stored settings are re-validated whenever they are applied; invalid values (from older versions or an import)
+// are replaced by their clamped value or removed, both in the result and in storage (SEC-03).
+function validSettings() {
+  let out = settings(true);
+  if (!out || typeof out !== 'object' || Array.isArray(out)) {          // storage holds something that is not settings
+    try { localStorage.setItem('rsvp-settings', '{}'); } catch (e) {}
+    return {};
+  }
+  const clean = sanitizeSettings(out);
+  const bad = ['wpm', 'sent', 'skipRunning', 'showImages'].filter(k => k in out && out[k] !== clean[k]);
+  if (!bad.length) return out;
+  for (const k of bad) { if (k in clean) out[k] = clean[k]; else delete out[k]; }
+  try { localStorage.setItem('rsvp-settings', JSON.stringify(out)); } catch (e) {}
+  return out;
 }
 
 /* ===== pdf.js loading: always the vendored copy from this origin (no CDN; CONTROLS.md PRV-04) ===== */
@@ -974,19 +990,16 @@ async function exportPositions() {
     settings: { wpm: s.wpm, sent: s.sent, skipRunning: s.skipRunning, showImages: s.showImages } });
 }
 async function importPositions(text) {
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw userError('That text is not a list of reading positions. Copy it again with “Copy reading positions”.'); }
-  if (!data || data.app !== 'rsvp-reader' || !Array.isArray(data.positions)) throw userError('That text is not a list of reading positions from this app.');
+  const data = parsePositionsExport(text);           // throws a user-facing error for anything that is not an export
   let applied = 0, older = 0;
   for (const p of data.positions) {
-    if (typeof p.id !== 'string' || !(p.tokenIndex >= 0)) continue;
     const cur = await idbGet('progress', p.id);
-    if (cur && cur.updatedAt >= (p.updatedAt || 0)) { older++; continue; }
-    await idbPut('progress', { docId: p.id, tokenIndex: p.tokenIndex | 0, updatedAt: p.updatedAt || Date.now() });
+    if (cur && cur.updatedAt >= p.updatedAt) { older++; continue; }
+    await idbPut('progress', { docId: p.id, tokenIndex: p.tokenIndex, updatedAt: p.updatedAt });
     applied++;
   }
-  if (data.settings) { const v = {}; for (const k of ['wpm', 'sent', 'skipRunning', 'showImages']) if (data.settings[k] != null) v[k] = data.settings[k]; settings(false, v); }
-  return { applied, older, total: data.positions.length };
+  if (Object.keys(data.settings).length) settings(false, data.settings);
+  return { applied, older, skipped: data.skipped, total: data.total };
 }
 $('copyPosBtn').onclick = async () => {
   const text = await exportPositions();
@@ -1003,8 +1016,8 @@ $('posClose').onclick = () => { $('posBox').hidden = true; };
 $('posApply').onclick = async () => {
   try {
     const r = await importPositions($('posText').value);
-    $('posMsg').textContent = `Applied ${r.applied} of ${r.total}` + (r.older ? ` (${r.older} kept: newer here)` : '') + '. Books you add later resume at these positions.';
-    const s = settings(true);
+    $('posMsg').textContent = `Applied ${r.applied} of ${r.total}` + (r.older ? ` (${r.older} kept: newer here)` : '') + (r.skipped ? ` (${r.skipped} invalid, ignored)` : '') + '. Books you add later resume at these positions.';
+    const s = validSettings();
     if (s.wpm) player.wpm = s.wpm; if (s.sent) setSentenceFactor(s.sent);
     $('sentPause').value = FACTOR.sent; $('sentOut').textContent = FACTOR.sent + '×';
     $('skipRun').checked = s.skipRunning !== false; $('imgOn').checked = s.showImages !== false;
@@ -1210,10 +1223,10 @@ $('timeBtn').onclick = async () => {
 
 /* ===== boot ===== */
 (async function boot() {
-  const s = settings(true);
-  $('src').value = s.text || SAMPLE;
-  if (s.wpm) player.wpm = Math.max(100, Math.min(1000, s.wpm));
-  if (s.sent >= 1.5 && s.sent <= 4) setSentenceFactor(s.sent);
+  const s = validSettings();
+  $('src').value = typeof s.text === 'string' ? s.text : SAMPLE;
+  if (s.wpm) player.wpm = s.wpm;
+  if (s.sent) setSentenceFactor(s.sent);
   $('sentPause').value = FACTOR.sent; $('sentOut').textContent = FACTOR.sent + '×';
   $('skipRun').checked = s.skipRunning !== false;
   $('imgOn').checked = s.showImages !== false;

@@ -38,7 +38,7 @@ Neuspešni slučajevi: PDF koji obori pdf.js worker; stranice koje se ne mogu pr
 | T3.5 | Pauza pa nastavak → kreće od početka tekuće rečenice, najviše 20 reči unazad | U |
 | T3.6 | Slika u knjizi → čitanje staje na njenom mestu, slika se prikazuje, a „Continue“ nastavlja | E |
 | T3.7 | Tab ili aplikacija u pozadini → čitanje se pauzira bez preskakanja reči | E |
-| T3.8 | Uvoz podešavanja sa neispravnim vrednostima (string, negativan broj, van opsega) → odbijeno ili ograničeno na opseg | U **[razlika: `index.html:1762, 1782` ne validira]** |
+| T3.8 | Uvoz podešavanja sa neispravnim vrednostima (string, negativan broj, van opsega) → odbijeno ili ograničeno na opseg | U, E (`tests/settings.test.mjs`, `tests/e2e/positions.py`; ispravljeno 2026-10-25) |
 
 ## T4 — Nastavak čitanja
 

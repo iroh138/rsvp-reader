@@ -34,7 +34,11 @@ Sredstva (zajednička za sve tokove):
 - **Akteri:** korisnik koji nalepi tekst iz nepouzdanog izvora (forum, „preset“).
 - **Granica poverenja:** tekst → `JSON.parse` → IndexedDB (`progress`) i localStorage (`rsvp-settings`).
 - **Napadi:**
-  - **A5:** neispravne vrednosti `wpm`/`sent` (string, negativno, NaN). **Potvrđeno**: `index.html:1762, 1782` ne validira; negativan `wpm` pravi brzu petlju koja prepiše poziciju čitanja.
+  - **A5:** neispravne vrednosti `wpm`/`sent` (string, negativno, NaN). **Potvrđeno** (ispravka 2026-10-25, reprodukovano u browseru):
+    - string `wpm` trajno kvari čitač („NaN wpm“, ne napreduje, preživljava reload);
+    - ogroman `sent` zaglavi čitač na kraju rečenice;
+    - negativan `wpm` odmah pauzira čitanje.
+    Ranija tvrdnja da negativan `wpm` „pravi brzu petlju koja prepiše poziciju“ bila je netačna. Ispravljeno u `src/settings.js`.
   - **A6:** ogroman JSON (hiljade unosa) → sporo ili blokira UI.
   - **A7:** `tokenIndex` van opsega knjige.
 - **Posledice:** gubitak pozicije, neupotrebljiv čitač do brisanja podešavanja (S-b). Nema izvršavanja koda, jer je `JSON.parse` bezbedan i vrednosti se ne interpretiraju kao kod.
@@ -43,6 +47,7 @@ Sredstva (zajednička za sve tokove):
   - limit veličine teksta i broja unosa;
   - ista validacija i pri čitanju localStorage-a na startu (`index.html:1989`);
   - negativni testovi.
+- **Stanje (2026-10-25):** kontrole su implementirane u `src/settings.js` (unit testovi `tests/settings.test.mjs`, browser `tests/e2e/positions.py`), uključujući popravku već oštećenog localStorage-a pri startu.
 - **Preostali rizik:** nizak.
 
 ## P3 — Lanac isporuke (hosting, service worker, CI, prodavnice)

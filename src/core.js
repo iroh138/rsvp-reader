@@ -469,4 +469,34 @@ export function viewportRect(vp, r) {
   const [a, b] = vp.convertToViewportPoint(r[0], r[1]), [c, d] = vp.convertToViewportPoint(r[2], r[3]);
   return [a, b, c, d];
 }
+// N2 (docs/pdf-corpus.md): language-independent check for broken text extraction. The old check counted common
+// ENGLISH words, so every book in another language was reported as garbled. Broken extraction instead leaves
+// structural traces: private-use or replacement characters, symbol soup, words mixing alphabets, missing spaces.
+// A shifted alphabet ("Wkh txlfn") has none of these traces and is not detected (documented limitation).
+export const GARBLED = Object.freeze({ minWords: 300, unusualChars: 0.02, symbolChars: 0.15, mixedScriptWords: 0.1, runOnWords: 0.1, runOnLetters: 40 });   // real words of 40+ letters practically never occur; run-on lines are 50-80
+const UNUSUAL = /[\p{Co}\p{Cn}\p{Cc}\uFFFD]/gu;
+const SYMBOL = /[\p{Sm}\p{Sk}\p{So}#*@\\^_`|~{}<>]/gu;
+const SCRIPTS = [/\p{Script=Latin}/u, /\p{Script=Cyrillic}/u, /\p{Script=Greek}/u];
+const SPACED_LETTERS = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]/gu;
+export function textQuality(words) {
+  const n = words.length;
+  let chars = 0, unusual = 0, symbols = 0, mixed = 0, runOn = 0;
+  for (const w of words) {
+    chars += [...w].length;
+    unusual += (w.match(UNUSUAL) || []).length;
+    symbols += (w.match(SYMBOL) || []).length;
+    // "PDF-а" or "Facebook-у" mix alphabets across a hyphen in normal Serbian text: judge each part separately
+    if (w.split(/[-‐–—]/).some(part => SCRIPTS.filter(re => re.test(part)).length > 1)) mixed++;
+    if ((w.match(SPACED_LETTERS) || []).length >= GARBLED.runOnLetters) runOn++;
+  }
+  const r = { words: n, unusual: chars ? unusual / chars : 0, symbols: chars ? symbols / chars : 0, mixedScript: n ? mixed / n : 0, runOn: n ? runOn / n : 0 };
+  const reasons = [];
+  if (n >= GARBLED.minWords) {
+    if (r.unusual > GARBLED.unusualChars) reasons.push('unusual characters');
+    if (r.symbols > GARBLED.symbolChars) reasons.push('symbols instead of letters');
+    if (r.mixedScript > GARBLED.mixedScriptWords) reasons.push('mixed alphabets inside words');
+    if (r.runOn > GARBLED.runOnWords) reasons.push('missing spaces between words');
+  }
+  return { ...r, garbled: reasons.length > 0, reason: reasons.join(', ') };
+}
 /* ===== END CORE ===== */

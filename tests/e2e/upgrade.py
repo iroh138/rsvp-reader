@@ -29,6 +29,8 @@ with sync_playwright() as p:
     pg.keyboard.press('Space'); pg.wait_for_timeout(1500); pg.keyboard.press('Space'); pg.wait_for_timeout(300)
     out['old_meta'] = pg.inner_text('#meta')
     out['old_books'] = pg.locator('#books .book .t').all_inner_texts()
+    out['old_warnings'] = pg.locator('#books .book .w').all_inner_texts()
+    out['old_store'] = pg.evaluate("""async () => { const db = await new Promise(r => { const q = indexedDB.open('rsvp-reader'); q.onsuccess = () => r(q.result); }); const ps = await new Promise(r => { const q = db.transaction('pages').objectStore('pages').getAll(); q.onsuccess = () => r(q.result); }); const ds = await new Promise(r => { const q = db.transaction('documents').objectStore('documents').getAll(); q.onsuccess = () => r(q.result); }); db.close(); return { skipped: ps.reduce((n, p) => n + p.tokFlags.filter(f => f & 1).length, 0), processor: ds.map(d => d.processorVersion) }; }""")
     out['old_caches'] = pg.evaluate('caches.keys()')
     ctx.close(); srv.terminate(); srv.wait()
 
@@ -50,6 +52,8 @@ with sync_playwright() as p:
     out['books'] = pg.locator('#books .book .t').all_inner_texts()
     out['new_meta'] = pg.inner_text('#meta')
     out['external_requests'] = external
+    out['warnings'] = pg.locator('#books .book .w').all_inner_texts()
+    out['store'] = pg.evaluate("""async () => { const db = await new Promise(r => { const q = indexedDB.open('rsvp-reader'); q.onsuccess = () => r(q.result); }); const ps = await new Promise(r => { const q = db.transaction('pages').objectStore('pages').getAll(); q.onsuccess = () => r(q.result); }); const ds = await new Promise(r => { const q = db.transaction('documents').objectStore('documents').getAll(); q.onsuccess = () => r(q.result); }); db.close(); return { skipped: ps.reduce((n, p) => n + p.tokFlags.filter(f => f & 1).length, 0), processor: ds.map(d => d.processorVersion) }; }""")
     # The book was imported by the OLD build; the new build must still map taps to the stored words, etc.
     pg.goto(url + '?dev', wait_until='load'); pg.wait_for_timeout(2500)
     pg.click('#checkBtn')

@@ -84,7 +84,7 @@
      "emptyPages": [],
      "failedPages": [],
      "firstWords": "ЋИРИЛИЦА 1 Читач приказује једну по једну реч,",
-     "garbled": true,
+     "garbled": false,
      "images": [],
      "pageCount": 6,
      "pageText": [

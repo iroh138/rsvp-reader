@@ -10,7 +10,7 @@
 | `.npmrc`: `ignore-scripts=true` | Izvršavanje install skripti iz paketa koje agent predloži (AI-02) | Urađeno (ovaj PR) |
 | Akcije pinovane na SHA + automatska provera u CI-ju + Dependabot | Kompromitovan tag akcije (INF-02) | Urađeno (ovaj PR) |
 | Signing ključevi i nalozi prodavnica postoje samo kod vlasnika, nikad u okruženju agenta | Lažno ažuriranje u prodavnici (threat model A11) | Pravilo; proveriti pri postavljanju Play naloga |
-| Deploy samo iz CI-ja, sa zaštićenim okruženjem i odobrenjem vlasnika | Agent ne može da objavi u produkciju | Biće urađeno kada se izabere hosting |
+| Deploy samo iz CI-ja, sa zaštićenim okruženjem i odobrenjem vlasnika | Agent ne može da objavi u produkciju | Test deploy: `pages-test.yml`, samo ručno pokretanje i samo iz `main`, okruženje `github-pages`. Produkcija: kada se izabere hosting |
 
 Napomena: agent ima push pravo na repo, ali od 2026-10-25 ruleset `protect-main` tehnički sprečava direktan push na `main`. Svaka izmena ide kroz PR sa zelenim CI-jem, a spaja je vlasnik.
 

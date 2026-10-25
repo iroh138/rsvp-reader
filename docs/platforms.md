@@ -27,6 +27,10 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 | iPhone, iOS 18, Safari | vlasnik / tester | Nije testirano |
 | Windows ili macOS, Chrome / Edge / Firefox | vlasnik | Nije testirano na verziji sa pdf.js 6 |
 
+**Test build za uređaje:** https://iroh138.github.io/rsvp-reader/ (workflow „Pages test deploy“, pokreće se ručno iz `main`). Ovo nije produkcioni hosting: deli origin sa ostalim Pages sajtovima vlasnika (ADR 0003). Koristi samo testne PDF-ove, koje preuzimaš sa GitHub-a: `tests/fixtures/` → fajl → *Download raw file*.
+
+> **Otvaraj test build samo u incognito tabu** (ili u pregledaču u kom ne koristiš staru aplikaciju). Stara verzija radi na `https://iroh138.github.io/speed-reading-app/`, a to je **isti origin**. U istom profilu pregledača test build bi otvorio tvoju stvarnu biblioteku (ista IndexedDB baza `rsvp-reader`). Novi service worker bi pri aktivaciji obrisao keš stare aplikacije, pa ona više ne bi radila offline. Incognito ima odvojeno skladište. Instalacija PWA-a se tamo ne može testirati, ali offline rad može (avionski režim, pa reload).
+
 **Ručni test po uređaju (oko 10 minuta).** Upiši rezultat u ovu tabelu:
 1. Otvori aplikaciju sa `?dev`.
 2. Uvezi `tests/fixtures/book.pdf` i `jpx.pdf`.

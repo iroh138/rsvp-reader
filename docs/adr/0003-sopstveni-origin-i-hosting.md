@@ -11,3 +11,5 @@
 - Posledice:
   - Prelazak sa trenutne adrese menja origin, pa se lokalni podaci **ne prenose sami**. Korisnici (za sada samo ti) prenose pozicije postojećim izvozom ili uvozom; knjige se uvoze ponovo.
   - Prelazak uraditi pre javnog lansiranja, dok je korisnika malo.
+
+- Potvrđeno 2026-10-25: stara verzija aplikacije je objavljena na `iroh138.github.io/speed-reading-app/`. Svaka druga Pages aplikacija na `iroh138.github.io` deli sa njom IndexedDB, localStorage i Cache Storage. Test build na `/rsvp-reader/` se zato otvara samo u incognito tabu (`docs/platforms.md`).

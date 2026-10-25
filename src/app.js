@@ -5,7 +5,7 @@ import {
   ABBR, pivotOf, pivotIndex, flagsOf, FACTOR, setSentenceFactor,
   factorOf, cutRun, tokenize, buildPage, sentenceStart, rewindTarget,
   prevSentence, nextSentence, Book, extractLines, ROMAN, lineSig,
-  lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages, viewportRect
+  lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages, viewportRect, textQuality
 } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
 import { openDatabase } from './storage.js';
@@ -47,7 +47,8 @@ class Player {
 }
 
 /* ===== Storage: IndexedDB for books, localStorage for small settings ===== */
-const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 4;   // schema versions live in src/storage.js (MIGRATIONS)
+// PROCESSOR_VERSION 5: N1 page-number rule and the language-independent garbled check; older books are re-read once.
+const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 5;   // schema versions live in src/storage.js (MIGRATIONS)
 let dbPromise = null;
 function db() {
   if (!dbPromise) dbPromise = openDatabase(DB_NAME, {
@@ -414,7 +415,7 @@ function renderLibrary() {
     li.append(t, acts, m);
     const warns = [];
     if (doc.emptyPages && doc.emptyPages.length) warns.push(`${doc.emptyPages.length} page${doc.emptyPages.length > 1 ? 's' : ''} had no text and ${doc.emptyPages.length > 1 ? 'were' : 'was'} skipped (p. ${doc.emptyPages.slice(0, 8).join(', ')}${doc.emptyPages.length > 8 ? ', …' : ''})`);
-    if (doc.garbled) warns.push('The text looks garbled or is not English. Check a few words before reading.');
+    if (doc.garbled) warns.push('The text in this PDF looks garbled. Check a few words before reading.');
     if (warns.length) { const w = document.createElement('div'); w.className = 'w'; w.textContent = warns.join(' · '); li.appendChild(w); }
     if (doc.cleanup) {
       const c = document.createElement('div'); c.className = 'm c';
@@ -453,7 +454,6 @@ async function openBook(id, scroll) {
   } catch (e) { showMsg('err', 'Could not open the book: ' + (e.message || e)); }
 }
 
-const COMMON = new Set('the of and to a in is it that was he for on are as with his they i at be this have from or one had by but not what all were we when your can said there use an each which she do how their if will up other about out many then them these so some her would make like him into time has look two more write go see no way could people my than first been who its now find long down day did get come made may part over'.split(' '));
 
 async function sha256Hex(buf) {
   try { const h = await crypto.subtle.digest('SHA-256', buf); return Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, '0')).join(''); }
@@ -463,7 +463,8 @@ async function sha256Hex(buf) {
 // Read every page, tokenize, then clean up across the whole book (headers repeat across pages).
 async function processPdf(pdf, id, me, onPage) {
   const total = pdf.numPages, pageSizes = [], empty = [], failed = [], pdata = [];
-  let tokens = 0, common = 0, sampled = 0;
+  let tokens = 0;
+  const sample = [];                                    // words for the garbled-text check (N2)
   for (let i = 0; i < total; i++) {
     if (me.cancelled) throw cancelError();
     let ex = { text: '', itemStarts: [], lines: [] }, size = [0, 0], ph = 0, view = [0, 0, 0, 0], boxes = [];
@@ -481,11 +482,8 @@ async function processPdf(pdf, id, me, onPage) {
     pageSizes.push(size);
     const rec = buildPage(ex.text, false);
     if (((ex.text.match(/\p{L}/gu) || []).length) < 20) empty.push(i + 1);
-    for (let j = 0; j < rec.tokStart.length && j < 400; j++) {
-      const w = (rec.over[j] != null ? rec.over[j] : ex.text.slice(rec.tokStart[j], rec.tokEnd[j])).toLowerCase().replace(/[^\p{L}]/gu, '');
-      if (COMMON.has(w)) common++;
-      sampled++;
-    }
+    for (let j = 0; j < rec.tokStart.length && j < 400 && sample.length < 20000; j++)
+      sample.push(rec.over[j] != null ? rec.over[j] : ex.text.slice(rec.tokStart[j], rec.tokEnd[j]));
     tokens += rec.tokStart.length;
     rec.docId = id; rec.pageIndex = i; rec.itemStarts = Uint32Array.from(ex.itemStarts);
     pdata.push({ rec, lines: ex.lines, ph, view, boxes, letters: (ex.text.match(/\p{L}/gu) || []).length });
@@ -498,7 +496,7 @@ async function processPdf(pdf, id, me, onPage) {
   const images = scanned ? [] : placeImages(pdata);
   pdata.forEach(pd => { delete pd.lines; delete pd.boxes; });
   const withImage = new Set(images.map(im => im.p + 1));
-  return { pdata, total, tokens, pageSizes, empty: empty.filter(n => !withImage.has(n)), failed, scanned, cleanup, images, garbled: sampled > 300 && common / sampled < 0.1 };
+  return { pdata, total, tokens, pageSizes, empty: empty.filter(n => !withImage.has(n)), failed, scanned, cleanup, images, garbled: textQuality(sample).garbled };
 }
 async function savePages(pdata, onFirst) {
   const d = await db();
@@ -528,7 +526,7 @@ async function reprocessBook(doc) {
     });
     $('importMeta').textContent = 'Saving…';
     await savePages(r.pdata);
-    Object.assign(doc, { totalTokens: r.tokens, cleanup: r.cleanup, images: r.images, emptyPages: r.empty, processorVersion: PROCESSOR_VERSION });
+    Object.assign(doc, { totalTokens: r.tokens, cleanup: r.cleanup, images: r.images, emptyPages: r.empty, garbled: r.garbled, processorVersion: PROCESSOR_VERSION });
     await idbPut('documents', doc);
   } finally {
     if (pdf) { try { pdf.destroy(); } catch (e) {} }

@@ -29,7 +29,7 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 - Predlog: pravilo B prihvata samo red u kome je broj (skoro) sav sadržaj, npr. „12“, „— 12 —“ ili „Page 12“, ili red odvojen od tela razmakom većim od proreda, kao kod pravila A.
 - Ispravka zahteva izmenu golden-a, pa ide kao zaseban PR.
 
-**N2 — Lažno upozorenje za tekst koji nije na engleskom (srednji prioritet).** Za `cyrillic.pdf` (ispravan srpski tekst) aplikacija postavlja `garbled = true` i prikazuje „The text looks garbled or is not English“. Detekcija broji česte **engleske** reči (`COMMON`, `src/app.js`). Za ciljno tržište (Srbija + globalno) ovo znači da svaka knjiga na srpskom ili nekom drugom jeziku dobija upozorenje. Ovo potvrđuje pretpostavku iz faze 1 (`docs/phase-1/01-validacija-potrebe.md`, H7 i napomena o heuristikama).
+**N2 — Lažno upozorenje za tekst koji nije na engleskom (srednji prioritet). ISPRAVLJENO 2026-10-25** (vidi dole). Za `cyrillic.pdf` (ispravan srpski tekst) aplikacija postavlja `garbled = true` i prikazuje „The text looks garbled or is not English“. Detekcija broji česte **engleske** reči (`COMMON`, `src/app.js`). Za ciljno tržište (Srbija + globalno) ovo znači da svaka knjiga na srpskom ili nekom drugom jeziku dobija upozorenje. Ovo potvrđuje pretpostavku iz faze 1 (`docs/phase-1/01-validacija-potrebe.md`, H7 i napomena o heuristikama).
 - Predlog: meriti udeo znakova koji nisu slova ili su „private use“, umesto engleskih reči.
 
 ## Nadogradnja na pdf.js 6.4.299 (2026-10-25)
@@ -45,3 +45,18 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 - Unit testovi: negativni („Page 12 begins with …“ se ne uklanja; test pada na starom kodu) i pozitivni (gol broj sa i bez razmaka, kratki redovi sa brojem i dalje se uklanjaju).
 - Golden je ponovo snimljen. Promenjeni su **samo** `images.pdf` (preskočeno 65 → 15 reči: 5 zaglavlja × 2 + 5 brojeva) i `jpx.pdf` (48 → 12). `book.pdf` i `cyrillic.pdf` su nepromenjeni.
 - **Poznato ograničenje (N3, nizak prioritet):** na stranicama sa vrlo malo redova levu marginu određuje najčešći početak reda. Ako su skoro svi redovi uvučeni, uvlačenje se ne prepoznaje kao novi pasus. Zato je u `images.pdf` broj pasusa pao sa 5 na 2. Ranije je to bilo slučajno „tačno“, jer je jedan red pogrešno bio izbačen. Realne stranice sa desetinama redova nisu pogođene (`book.pdf`: 14 pasusa, nepromenjeno).
+
+## Ispravka N2 (2026-10-25)
+
+- `textQuality` (`src/core.js`) više ne broji engleske reči. Traži strukturne tragove pokvarenog izvoza teksta, nezavisne od jezika:
+  - neobični znakovi (private use, `U+FFFD`, kontrolni) > 2 %;
+  - simboli umesto slova > 15 %;
+  - reči koje mešaju latinicu, ćirilicu i grčko pismo > 10 % (delovi oko crtice se gledaju posebno, pa „PDF-а“ je u redu);
+  - „reči“ od 40+ slova > 10 % (nedostaju razmaci).
+- Testovi: ispravan tekst na engleskom, srpskoj latinici i ćirilici, nemačkom (sa namerno ekstremnim složenicama), francuskom, grčkom i kineskom, kao i tabela sa brojevima, nije označen. Pet tipova pokvarenog teksta jeste, uz razlog. Prag za „reč bez razmaka“ je podignut sa 30 na 40 slova posle testa sa nemačkim složenicama.
+- **Poznato ograničenje:** tekst u kom su slova zamenjena drugim slovima („Wkh txlfn“) nema strukturni trag i ne otkriva se. Test to eksplicitno beleži.
+- `PROCESSOR_VERSION` 4 → 5: već uvezene knjige se pri prvom otvaranju jednom ponovo obrade. Time dobijaju i ispravku N1, i ispravku N2. Testirano nadogradnjom:
+  - srpska knjiga gubi upozorenje;
+  - `images.pdf` uvezen pre ispravke N1 vraća izgubljene rečenice (preskočeno 65 → 15);
+  - pozicija čitanja ostaje ista.
+- Golden: promenjen je samo `cyrillic.pdf` (`garbled: true → false`).

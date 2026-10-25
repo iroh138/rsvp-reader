@@ -134,3 +134,37 @@ test('viewportRect transforms both corners like pdf.js 3 convertToViewportRectan
   const vp = { convertToViewportPoint: (x, y) => [2 * x, 2 * (100 - y)] };
   assert.deepEqual(viewportRect(vp, [10, 20, 30, 60]), [20, 160, 60, 80]);
 });
+
+// N1 (docs/pdf-corpus.md): a body line that happens to contain the page number must stay readable.
+function pagesWith(top, { gapBelow = 14 } = {}) {
+  const pdata = [];
+  for (let p = 0; p < 6; p++) {
+    const lines = [...(top ? [[top(p), 50, 540 + gapBelow]] : []), ...bodyLines(p)];
+    pdata.push(page(lines));
+  }
+  return pdata;
+}
+const skippedWords = (pdata) => pdata.map(({ rec }) => Array.from(rec.tokStart, (s, j) => rec.tokFlags[j] & F.SKIP ? rec.text.slice(s, rec.tokEnd[j]) : null).filter(Boolean));
+
+test('N1 negative: a body sentence containing the page number is NOT removed', () => {
+  const pdata = pagesWith(p => `Page ${p + 1} begins with a short paragraph of plain words.`);
+  applyCleanup(pdata);
+  assert.deepEqual(skippedWords(pdata), [[], [], [], [], [], []]);
+});
+
+test('N1: a bare page number line is still removed, with or without a gap', () => {
+  for (const gapBelow of [14, 40]) {
+    const pdata = pagesWith(p => String(p + 1), { gapBelow });
+    applyCleanup(pdata);
+    assert.deepEqual(skippedWords(pdata), [['1'], ['2'], ['3'], ['4'], ['5'], ['6']], `gap ${gapBelow}`);
+  }
+});
+
+test('N1: short page-number lines ("Page 12", "— 12 —", "12 The Book Title") are still removed', () => {
+  for (const make of [p => `Page ${p + 1}`, p => `— ${p + 1} —`, p => `${p + 1} The Book Title`]) {
+    const pdata = pagesWith(make);
+    applyCleanup(pdata);
+    // symbol-only pieces attach to the number, so "— 3 —" is one word
+    for (const [i, words] of skippedWords(pdata).entries()) assert.ok(words.some(w => w.replace(/[^0-9]/g, '') === String(i + 1)), `${make(i)} on page ${i + 1}`);
+  }
+});

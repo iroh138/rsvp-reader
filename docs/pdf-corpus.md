@@ -20,7 +20,7 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 
 ## Nalazi u postojećem kodu (nisu ispravljeni u ovom PR-u)
 
-**N1 — Tekst knjige se tiho preskače (visok prioritet).** Prvi red tela strane („Page 1 begins with a short paragraph of plain words.“) uklanja se na **svakoj** strani kao „page numbers“:
+**N1 — Tekst knjige se tiho preskače (visok prioritet). ISPRAVLJENO 2026-10-25** (vidi dole). Prvi red tela strane („Page 1 begins with a short paragraph of plain words.“) uklanja se na **svakoj** strani kao „page numbers“:
 - kratak je (≤ 12 reči);
 - nalazi se među dva gornja reda;
 - sadrži broj koji raste sa stranom (pravilo B u `applyCleanup`, `src/core.js`).
@@ -38,3 +38,10 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 - Nadogradnja sa 3.11 builda za `book.pdf`, `images.pdf`, `cyrillic.pdf` i `jpx.pdf`: knjige uvezene starom verzijom rade u novoj, uključujući tap-to-word 20/20 (16/16 za `jpx.pdf`) i prikaz slike.
 - Korpus je uhvatio regres koji bi inače otišao u produkciju: `PageViewport.convertToViewportRectangle` ne postoji u 4+, pa se slika iz knjige nije iscrtavala. Ispravljeno pomoćnom funkcijom `viewportRect` (`src/core.js`, sa testom).
 - **In-app provera slike je davala lažan „OK“ za prazno platno.** Providan piksel (0,0,0,0) je računala kao „iscrtano“. Sada traži bar dve različite neprovidne boje. Proverom je potvrđeno da bez wasm dekodera JPEG 2000 slika ostaje prazna (1 boja), a sa njima se iscrtava (6.876 boja u uzorku). Zato se wasm isporučuje.
+
+## Ispravka N1 (2026-10-25)
+
+- Pravilo B (`applyCleanup`, `src/core.js`) prihvata red sa brojem strane samo ako je odvojen od teksta većim razmakom, ili ako pored broja ima najviše `MAX_WORDS_BESIDE_NUMBER = 3` reči („Page 12“, „— 12 —“, „12 The Book Title“).
+- Unit testovi: negativni („Page 12 begins with …“ se ne uklanja; test pada na starom kodu) i pozitivni (gol broj sa i bez razmaka, kratki redovi sa brojem i dalje se uklanjaju).
+- Golden je ponovo snimljen. Promenjeni su **samo** `images.pdf` (preskočeno 65 → 15 reči: 5 zaglavlja × 2 + 5 brojeva) i `jpx.pdf` (48 → 12). `book.pdf` i `cyrillic.pdf` su nepromenjeni.
+- **Poznato ograničenje (N3, nizak prioritet):** na stranicama sa vrlo malo redova levu marginu određuje najčešći početak reda. Ako su skoro svi redovi uvučeni, uvlačenje se ne prepoznaje kao novi pasus. Zato je u `images.pdf` broj pasusa pao sa 5 na 2. Ranije je to bilo slučajno „tačno“, jer je jedan red pogrešno bio izbačen. Realne stranice sa desetinama redova nisu pogođene (`book.pdf`: 14 pasusa, nepromenjeno).

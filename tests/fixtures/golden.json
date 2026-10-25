@@ -141,18 +141,18 @@
     {
      "clause": 0,
      "cleanup": {
-      "paras": 5,
+      "paras": 2,
       "removed": [
-       {
-        "pages": 10,
-        "text": "page numbers"
-       },
        {
         "pages": 5,
         "text": "FIXTURE IMAGES"
+       },
+       {
+        "pages": 5,
+        "text": "page numbers"
        }
       ],
-      "skippedTokens": 65
+      "skippedTokens": 15
      },
      "emptyPages": [],
      "failedPages": [],
@@ -178,9 +178,9 @@
       "6463a00ee6cd75be",
       "bc968b288d4b36a8"
      ],
-     "paragraph": 5,
+     "paragraph": 2,
      "sentence": 15,
-     "skipped": 65,
+     "skipped": 15,
      "title": "Fixture Images",
      "totalTokens": 152
     }
@@ -207,15 +207,15 @@
       "paras": 1,
       "removed": [
        {
-        "pages": 8,
-        "text": "page numbers"
+        "pages": 4,
+        "text": "FIXTURE JPX"
        },
        {
         "pages": 4,
-        "text": "FIXTURE JPX"
+        "text": "page numbers"
        }
       ],
-      "skippedTokens": 48
+      "skippedTokens": 12
      },
      "emptyPages": [],
      "failedPages": [],
@@ -242,7 +242,7 @@
      ],
      "paragraph": 1,
      "sentence": 12,
-     "skipped": 48,
+     "skipped": 12,
      "title": "Fixture JPX",
      "totalTokens": 119
     }

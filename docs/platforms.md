@@ -27,6 +27,8 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 | iPhone, iOS 18, Safari | vlasnik / tester | Nije testirano |
 | Windows ili macOS, Chrome / Edge / Firefox | vlasnik | Nije testirano na verziji sa pdf.js 6 |
 
+**Test build za uređaje:** https://iroh138.github.io/rsvp-reader/ (workflow „Pages test deploy“, pokreće se ručno iz `main`). Ovo nije produkcioni hosting: deli origin sa ostalim Pages sajtovima vlasnika (ADR 0003). Koristi samo testne PDF-ove, koje preuzimaš sa GitHub-a: `tests/fixtures/` → fajl → *Download raw file*.
+
 **Ručni test po uređaju (oko 10 minuta).** Upiši rezultat u ovu tabelu:
 1. Otvori aplikaciju sa `?dev`.
 2. Uvezi `tests/fixtures/book.pdf` i `jpx.pdf`.

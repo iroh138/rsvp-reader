@@ -8,3 +8,5 @@
 
 The vendored PDF.js files are byte-identical to the files published in the npm package `pdfjs-dist@3.11.174` (verified 2026-10-24).
 The font files are copied unchanged from the Fontsource npm tarballs by `scripts/update-fonts.mjs`; only `vendor/fonts/fonts.css` is generated (family names and paths rewritten). Every vendored file is pinned in `vendor/SHA256SUMS` and checked by the build.
+
+Test fixtures only (not shipped): `tests/fixtures/cyrillic.pdf` embeds a subset of DejaVu Serif (Bitstream Vera / DejaVu licence, free to embed and redistribute).

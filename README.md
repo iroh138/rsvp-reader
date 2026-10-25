@@ -20,9 +20,19 @@ npm run serve     # serve dist/ on http://localhost:8080
 
 Open the app with `?dev` to show the in-app acceptance checks and the paste-text panel.
 
-Browser smoke tests (optional, Python + Playwright): `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf` `python3 tests/e2e/offline.py http://localhost:8080/`, `python3 tests/e2e/fonts.py http://localhost:8080/` (no third-party requests, bundled fonts in use) and `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf` (update from a previous build keeps the library) `python3 tests/e2e/positions.py http://localhost:8080/` (invalid imported or stored settings cannot break the reader), and, with the repository root served (`node scripts/serve.mjs . 8080`), `python3 tests/e2e/storage.py http://localhost:8080/` (database migrations, rollback, other open tabs).
+Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve`, then:
 
-Changing the IndexedDB schema: add a new function to `MIGRATIONS` in `src/storage.js`; never edit a shipped one. Test PDFs are generated with `python3 scripts/make-fixtures.py`.
+- `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf`: in-app checks and PDF import
+- `python3 tests/e2e/pdf-corpus.py http://localhost:8080/`: every PDF in `tests/fixtures/` against `tests/fixtures/golden.json` (`--write` re-records it; see `docs/pdf-corpus.md`)
+- `python3 tests/e2e/offline.py http://localhost:8080/`: installs, then works without a network
+- `python3 tests/e2e/fonts.py http://localhost:8080/`: no third-party requests, bundled fonts in use
+- `python3 tests/e2e/positions.py http://localhost:8080/`: invalid imported or stored settings cannot break the reader
+- `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf`: updating from a previous build keeps the library
+- with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
+
+Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).
+
+Changing the IndexedDB schema: add a new function to `MIGRATIONS` in `src/storage.js`; never edit a shipped one.
 
 Deploy the contents of `dist/`, not the repository root.
 

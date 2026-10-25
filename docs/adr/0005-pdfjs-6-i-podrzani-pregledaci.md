@@ -5,7 +5,7 @@
   - pdf.js 3.11.174 je zastareo. Ranjiv je na CVE-2024-4367 (zaštita `isEvalSupported: false` je postojala) i ne dobija ispravke.
   - Aktuelna verzija je 6.4.299. Prema zvaničnom pdf.js FAQ-u, moderni build cilja samo najnovije pregledače i Safari ne navodi. **Legacy build traži Chrome 125+ i Safari 18+** („mostly“). Ovo je provereno 2026-10-25 i treba ponovo proveriti na dan lansiranja.
   - Tekstualni sloj u 6.x koristi CSS `round()`, koji stariji pregledači nemaju.
-- Odluka (predlog): legacy build pdf.js 6.4.299 uz WebAssembly dekodere za JPEG 2000, JBIG2 i ICC boje. PDF JavaScript engine (quickjs) se ne isporučuje.
+- Odluka: legacy build pdf.js 6.4.299 uz WebAssembly dekodere za JPEG 2000, JBIG2 i ICC boje. PDF JavaScript engine (quickjs) se ne isporučuje.
 - Posledice:
   - **Podržani pregledači:** Chrome / Android Chrome 125+ (maj 2024), Safari / iOS 18+ (septembar 2024), aktuelni Firefox i Edge.
     - Korisnici sa iOS 17 i starijim gube podršku za uvoz i prikaz PDF-a.

@@ -114,3 +114,46 @@ open(os.path.join(out, 'truncated.pdf'), 'wb').write(data[: len(data) * 6 // 10]
 rnd = random.Random(42)
 open(os.path.join(out, 'garbage.pdf'), 'wb').write(b'%PDF-1.7\n' + bytes(rnd.randrange(256) for _ in range(20000)))
 print('wrote corpus to', os.path.abspath(out))
+
+# jpx.pdf: a JPEG 2000 picture between two paragraphs on page 2 (decoded by wasm in pdf.js 4+, by JS in 3.x).
+# Written by hand because reportlab cannot embed JPEG 2000.
+def jpx_pdf(path):
+    buf = io.BytesIO()
+    img = Image.new('RGB', (240, 150))
+    px = img.load()
+    for x in range(240):
+        for y in range(150):
+            px[x, y] = (x % 256, (y * 2) % 256, (x + y) % 256)
+    img.save(buf, 'JPEG2000', irreversible=False)
+    jp2 = buf.getvalue()
+    objs = []
+    def page_content(n, with_image):
+        lines = [f'BT /F1 9 Tf 40 565 Td (FIXTURE JPX) Tj ET', f'BT /F1 9 Tf 205 25 Td ({n}) Tj ET',
+                 f'BT /F1 11 Tf 40 525 Td (Page {n} opens with ordinary words before anything else.) Tj ET',
+                 'BT /F1 11 Tf 40 509 Td (The paragraph goes on for one more line and stops.) Tj ET']
+        if with_image:
+            lines += ['q 300 0 0 190 60 300 cm /Im1 Do Q', 'BT /F1 11 Tf 40 270 Td (After the picture the story simply continues.) Tj ET']
+        else:
+            lines += ['BT /F1 11 Tf 40 480 Td (Nothing else happens on this page at all.) Tj ET']
+        return '\n'.join(lines).encode()
+    n_pages = 4
+    # 1 catalog, 2 pages, 3 font, 4 image, then (page, content) pairs
+    page_ids = [5 + 2 * i for i in range(n_pages)]
+    objs.append(b'<< /Type /Catalog /Pages 2 0 R >>')
+    objs.append(('<< /Type /Pages /Count %d /Kids [%s] >>' % (n_pages, ' '.join(f'{p} 0 R' for p in page_ids))).encode())
+    objs.append(b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>')
+    objs.append(b'<< /Type /XObject /Subtype /Image /Width 240 /Height 150 /Filter /JPXDecode /Length %d >>\nstream\n' % len(jp2) + jp2 + b'\nendstream')
+    for i in range(n_pages):
+        c = page_content(i + 1, i == 1)
+        objs.append(('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 420 595] /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 4 0 R >> >> /Contents %d 0 R >>' % (page_ids[i] + 1)).encode())
+        objs.append(b'<< /Length %d >>\nstream\n' % len(c) + c + b'\nendstream')
+    out_b = bytearray(b'%PDF-1.5\n%\xe2\xe3\xcf\xd3\n')
+    offsets = []
+    for k, o in enumerate(objs, 1):
+        offsets.append(len(out_b)); out_b += b'%d 0 obj\n' % k + o + b'\nendobj\n'
+    xref = len(out_b)
+    out_b += b'xref\n0 %d\n0000000000 65535 f \n' % (len(objs) + 1)
+    for off in offsets: out_b += b'%010d 00000 n \n' % off
+    out_b += b'trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Fixture JPX) >> >>\nstartxref\n%d\n%%%%EOF\n' % (len(objs) + 1, xref)
+    open(path, 'wb').write(bytes(out_b))
+jpx_pdf(os.path.join(out, 'jpx.pdf'))

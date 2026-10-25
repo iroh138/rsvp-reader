@@ -127,3 +127,10 @@ test('T1.7 negative: a heading on only one page is not removed', () => {
   applyCleanup(pdata);
   for (const { rec } of pdata) assert.ok(rec.tokFlags.every(f => !(f & F.SKIP)));
 });
+
+test('viewportRect transforms both corners like pdf.js 3 convertToViewportRectangle', async () => {
+  const { viewportRect } = await import('../src/core.js');
+  // a viewport at scale 2 that flips y on a 100-unit-high page: (x, y) -> (2x, 2(100 - y))
+  const vp = { convertToViewportPoint: (x, y) => [2 * x, 2 * (100 - y)] };
+  assert.deepEqual(viewportRect(vp, [10, 20, 30, 60]), [20, 160, 60, 80]);
+});

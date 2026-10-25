@@ -15,7 +15,7 @@ Sredstva (zajednička za sve tokove):
 - **Akteri:** autor zlonamernog PDF-a; korisnik koji ga nesvesno otvori.
 - **Granica poverenja:** bajtovi fajla → pdf.js parser (worker) → tekst, operatori i canvas → DOM.
 - **Napadi:**
-  - **A1:** izvršavanje JS-a kroz font (CVE-2024-4367, pdf.js ≤4.1.392). Kontrola postoji: `isEvalSupported:false` (`index.html:1265, 1308, 1421`).
+  - **A1:** izvršavanje JS-a kroz font (CVE-2024-4367, pdf.js ≤4.1.392). Kontrola u 3.11 je bila `isEvalSupported:false`. **Od nadogradnje na pdf.js 6.4.299 (2026-10-25)** ta putanja u biblioteci ne postoji, što proverava `tests/pdf-loading.test.mjs`.
   - **A2:** nova ranjivost parsera u zastareloj verziji 3.11.174.
   - **A3:** DoS — ogroman broj stranica, ogromne slike, kompresione bombe → pad taba ili zauzeće kvote.
   - **A4:** XSS kroz metapodatke (Title) ili tekst. Kontrola postoji: svuda `textContent`, nema `innerHTML` (potvrđeno grep-om). Tekstualni sloj renderuje pdf.js `renderTextLayer` (`index.html:1460`).

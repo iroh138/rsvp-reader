@@ -1,12 +1,13 @@
 # Korpus testnih PDF-ova i nalazi
 
-Datum: 2026-10-25 · pdf.js 3.11.174 · Generator: `scripts/make-fixtures.py` (determinističan) · Provera: `tests/e2e/pdf-corpus.py`
+Datum: 2026-10-25 · Golden snimljen sa pdf.js 3.11.174 · Generator: `scripts/make-fixtures.py` (determinističan) · Provera: `tests/e2e/pdf-corpus.py`
 
 `tests/fixtures/golden.json` beleži kako **trenutni** kod obrađuje svaki fajl: poruku, šta je sačuvano u IndexedDB-u (hash teksta po stranici, broj reči i oznaka, uklonjena zaglavlja, slike) i rezultat in-app provera. Golden **nije** „tačno ponašanje“, nego referenca. Svaka razlika posle izmene koda ili nadogradnje pdf.js-a se prijavljuje, i čovek odlučuje da li je poboljšanje ili regresija. Posle prihvaćene izmene golden se ponovo snima sa `--write`.
 
 | Fajl | Šta testira | Rezultat (3.11.174) |
 |---|---|---|
 | `book.pdf` | Zaglavlje, brojevi strana, reč rastavljena preko strane, pasusi | Dodato, 739 reči; zaglavlje i brojevi uklonjeni; sve provere OK |
+| `jpx.pdf` | Slika u formatu JPEG 2000 (u pdf.js 4+ je dekodira WebAssembly) | Dodato; slika pozicionirana i iscrtana. **N1** se ponavlja (prvi red strane) |
 | `images.pdf` | Slika usred strane; mali ornament (dekoracija) | Dodato; slika pozicionirana na strani 2, ornament ignorisan; provera slike OK. **Nalaz N1** |
 | `cyrillic.pdf` | Srpska ćirilica i latinica, ugrađen font | Dodato; zaglavlje uklonjeno; tap-to-word 20/20. **Nalaz N2** |
 | `encrypted.pdf` | PDF sa lozinkom (T1.3) | Poruka o lozinki; ništa nije sačuvano |
@@ -30,3 +31,10 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 
 **N2 — Lažno upozorenje za tekst koji nije na engleskom (srednji prioritet).** Za `cyrillic.pdf` (ispravan srpski tekst) aplikacija postavlja `garbled = true` i prikazuje „The text looks garbled or is not English“. Detekcija broji česte **engleske** reči (`COMMON`, `src/app.js`). Za ciljno tržište (Srbija + globalno) ovo znači da svaka knjiga na srpskom ili nekom drugom jeziku dobija upozorenje. Ovo potvrđuje pretpostavku iz faze 1 (`docs/phase-1/01-validacija-potrebe.md`, H7 i napomena o heuristikama).
 - Predlog: meriti udeo znakova koji nisu slova ili su „private use“, umesto engleskih reči.
+
+## Nadogradnja na pdf.js 6.4.299 (2026-10-25)
+
+- **Svih 9 fajlova je identično golden-u iz 3.11:** isti tekst po stranici, iste oznake, uklonjena zaglavlja, pozicije slika, poruke i in-app provere.
+- Nadogradnja sa 3.11 builda za `book.pdf`, `images.pdf`, `cyrillic.pdf` i `jpx.pdf`: knjige uvezene starom verzijom rade u novoj, uključujući tap-to-word 20/20 (16/16 za `jpx.pdf`) i prikaz slike.
+- Korpus je uhvatio regres koji bi inače otišao u produkciju: `PageViewport.convertToViewportRectangle` ne postoji u 4+, pa se slika iz knjige nije iscrtavala. Ispravljeno pomoćnom funkcijom `viewportRect` (`src/core.js`, sa testom).
+- **In-app provera slike je davala lažan „OK“ za prazno platno.** Providan piksel (0,0,0,0) je računala kao „iscrtano“. Sada traži bar dve različite neprovidne boje. Proverom je potvrđeno da bez wasm dekodera JPEG 2000 slika ostaje prazna (1 boja), a sa njima se iscrtava (6.876 boja u uzorku). Zato se wasm isporučuje.

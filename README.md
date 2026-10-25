@@ -32,6 +32,8 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 
 Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).
 
+Updating pdf.js: `scripts/update-pdfjs.mjs` (instructions inside), then run the PDF corpus check against the golden file. Hosting must serve `.mjs` as `text/javascript` and `.wasm` as `application/wasm`, and a CSP must allow `'wasm-unsafe-eval'` (see `docs/adr/0005-pdfjs-6-i-podrzani-pregledaci.md`).
+
 Changing the IndexedDB schema: add a new function to `MIGRATIONS` in `src/storage.js`; never edit a shipped one.
 
 Deploy the contents of `dist/`, not the repository root.

@@ -5,7 +5,7 @@ import {
   ABBR, pivotOf, pivotIndex, flagsOf, FACTOR, setSentenceFactor,
   factorOf, cutRun, tokenize, buildPage, sentenceStart, rewindTarget,
   prevSentence, nextSentence, Book, extractLines, ROMAN, lineSig,
-  lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages
+  lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages, viewportRect
 } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
 import { openDatabase } from './storage.js';
@@ -104,14 +104,14 @@ function validSettings() {
 }
 
 /* ===== pdf.js loading: always the vendored copy from this origin (no CDN; CONTROLS.md PRV-04) ===== */
-let pdfjsPromise = null, workerMode = '';
-function loadScript(src) {
-  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = () => res(src); s.onerror = () => { s.remove(); rej(new Error('Could not load ' + src)); }; document.head.appendChild(s); });
-}
+// pdf.js 6 (legacy build) is an ES module; it is loaded on first use so the reader starts without it.
+let pdfjsLib = null, pdfjsPromise = null, workerMode = '';
+const PDFJS_WASM = new URL('vendor/pdfjs/wasm/', location.href).href;   // JPEG 2000, JBIG2 and ICC decoders
 function ensurePdfjs() {
   if (!pdfjsPromise) pdfjsPromise = (async () => {
-    if (!window.pdfjsLib) await loadScript('vendor/pdf.min.js');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdf.worker.min.js', location.href).href;
+    const lib = await import('../vendor/pdfjs/pdf.min.mjs');
+    lib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
+    pdfjsLib = lib;
     workerMode = 'background worker';
   })().catch(e => { pdfjsPromise = null; throw e; });
   return pdfjsPromise;
@@ -498,7 +498,7 @@ async function reprocessBook(doc) {
   try {
     const [rec] = await Promise.all([idbGet('files', doc.id), ensurePdfjs()]);
     if (!rec || !rec.blob) throw userError('The PDF file for this book is missing. Delete the book and add it again.');
-    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await rec.blob.arrayBuffer()), isEvalSupported: false, useSystemFonts: true, stopAtErrors: false }).promise;
+    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await rec.blob.arrayBuffer()), wasmUrl: PDFJS_WASM, useSystemFonts: true, stopAtErrors: false }).promise;
     const r = await processPdf(pdf, doc.id, me, (i, total) => {
       $('importFill').style.width = ((i + 1) / total * 100).toFixed(1) + '%';
       $('importMeta').textContent = `Page ${fmtN(i + 1)} / ${fmtN(total)}`;
@@ -541,7 +541,7 @@ async function importPdf(file) {
     if (me.cancelled) throw cancelError();
     $('importMeta').textContent = 'Opening PDF…';
     try {
-      pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false, useSystemFonts: true, stopAtErrors: false }).promise;
+      pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf), wasmUrl: PDFJS_WASM, useSystemFonts: true, stopAtErrors: false }).promise;
     } catch (e) {
       if (e && e.name === 'PasswordException') throw userError('This PDF is password-protected. Password-protected PDFs are not supported yet.');
       throw userError('This PDF is damaged or uses a format the reader cannot open.');
@@ -654,7 +654,7 @@ function ensureDocPdf() {
       const [rec] = await Promise.all([idbGet('files', id), ensurePdfjs()]);
       if (!rec || !rec.blob) throw new Error('The PDF file for this book is missing. Delete the book and add it again.');
       const data = new Uint8Array(await rec.blob.arrayBuffer());
-      const pdf = await pdfjsLib.getDocument({ data, isEvalSupported: false, useSystemFonts: true }).promise;
+      const pdf = await pdfjsLib.getDocument({ data, wasmUrl: PDFJS_WASM, useSystemFonts: true }).promise;
       if (docv.bookId !== id) { pdf.destroy(); throw new Error('stale'); }
       docv.pdf = pdf;
       return pdf;
@@ -684,16 +684,16 @@ function renderPage(st) {
     if (seq !== st.seq) { canvas.width = canvas.height = 0; return; }
     const tc = await page.getTextContent();
     if (seq !== st.seq) { canvas.width = canvas.height = 0; return; }
-    // The invisible text layer is built 4x larger and scaled down, so a browser's minimum font size
-    // (common on phones with larger-text settings) cannot enlarge it and misplace the words.
-    const K = 4, tvp = page.getViewport({ scale: s * K });
+    // Invisible text layer for tap-to-word. pdf.js 6 sizes it with CSS variables (--total-scale-factor) and
+    // compensates a browser's minimum font size itself (--min-font-size), so no extra scaling is needed.
+    const tvp = page.getViewport({ scale: s });
     const tl = document.createElement('div'); tl.className = 'textLayer';
-    tl.style.setProperty('--scale-factor', s * K);
-    tl.style.transform = `scale(${1 / K})`;
+    tl.style.setProperty('--total-scale-factor', s);
     st.el.insertBefore(canvas, st.hl);
     st.el.appendChild(tl);
-    const textDivs = [];
-    await pdfjsLib.renderTextLayer({ textContentSource: tc, container: tl, viewport: tvp, textDivs }).promise;
+    const layer = new pdfjsLib.TextLayer({ textContentSource: tc, container: tl, viewport: tvp });
+    await layer.render();
+    const textDivs = layer.textDivs;
     if (seq !== st.seq) { tl.remove(); canvas.width = canvas.height = 0; canvas.remove(); return; }
     textDivs.forEach((d, k) => { d.dataset.i = k; });
     Object.assign(st, { canvas, tl, textDivs, state: 'done' });
@@ -916,13 +916,13 @@ async function drawImage() {
     const pdf = await ensureDocPdf();
     const page = await pdf.getPage(img.p + 1);
     if (seq !== imgSeq) return;
-    const r1 = page.getViewport({ scale: 1 }).convertToViewportRectangle(img.bbox);
+    const r1 = viewportRect(page.getViewport({ scale: 1 }), img.bbox);
     const bw = Math.abs(r1[2] - r1[0]), bh = Math.abs(r1[3] - r1[1]);
     const W0 = Math.max(50, box.clientWidth), H0 = Math.max(50, box.clientHeight);
     const fit = Math.min(W0 / bw, H0 / bh);
     let s = fit * (window.devicePixelRatio || 1);
     s = Math.max(Math.min(s, 4096 / bw, 4096 / bh, Math.sqrt(1.2e7 / (bw * bh))), 0.5);
-    const vp = page.getViewport({ scale: s }), r = vp.convertToViewportRectangle(img.bbox);
+    const vp = page.getViewport({ scale: s }), r = viewportRect(vp, img.bbox);
     const left = Math.min(r[0], r[2]), top = Math.min(r[1], r[3]);
     const vp2 = page.getViewport({ scale: s, offsetX: -left, offsetY: -top });
     const off = document.createElement('canvas');
@@ -935,6 +935,7 @@ async function drawImage() {
     drawnFor = [W0, H0];
     cv.dataset.ready = '1';
   } catch (e) {
+    console.warn('Image render failed', img.p + 1, e);
     if (seq === imgSeq) $('imgCap').textContent = `Could not show the image on page ${img.p + 1} · continue to keep reading`;
   }
 }
@@ -1161,7 +1162,10 @@ async function imageCheck() {
   let painted = false;
   if (shown && $('imgCanvas').dataset.ready) {
     const cv = $('imgCanvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
-    for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 240 || d[i + 1] < 240 || d[i + 2] < 240) { painted = true; break; }
+    // A blank canvas is transparent (0,0,0,0) or one flat colour: require at least two different opaque colours.
+    const seen = new Set();
+    for (let i = 0; i < d.length && seen.size < 2; i += 4 * 97) if (d[i + 3] > 0) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+    painted = seen.size >= 2;
   }
   const after = shown ? book.text(img.g) : '';
   let resumed = false;

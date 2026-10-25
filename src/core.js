@@ -455,4 +455,10 @@ export function placeImages(pdata) {
   out.sort((a, b) => a.p - b.p || a.local - b.local || b.bbox[3] - a.bbox[3]);
   return out;
 }
+// PDF rectangle [x0, y0, x1, y1] -> viewport rectangle (two transformed corners, not normalised), the same as
+// PageViewport.convertToViewportRectangle in pdf.js 3, which pdf.js 4+ no longer has.
+export function viewportRect(vp, r) {
+  const [a, b] = vp.convertToViewportPoint(r[0], r[1]), [c, d] = vp.convertToViewportPoint(r[2], r[3]);
+  return [a, b, c, d];
+}
 /* ===== END CORE ===== */

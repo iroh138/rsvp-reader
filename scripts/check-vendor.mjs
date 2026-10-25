@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Verifies vendored third-party files against vendor/SHA256SUMS (recorded from the official npm packages
-// pdfjs-dist@3.11.174 and Fontsource 5.3.0, see THIRD_PARTY_NOTICES.md). Fails the build if a vendored file was changed or added without updating the list.
+// pdfjs-dist@6.4.299 and Fontsource 5.3.0, see THIRD_PARTY_NOTICES.md). Fails the build if a vendored file was changed or added without updating the list.
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';

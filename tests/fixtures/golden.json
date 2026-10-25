@@ -190,6 +190,68 @@
    "pages": 5
   }
  },
+ "jpx.pdf": {
+  "checks": [
+   "ok: Every character of “Fixture JPX” belongs to exactly one word, in order (4 pages, 119 words)",
+   "ok: Tapping a word on the page selects that word: 16/16 (limit 95%) across 4 pages",
+   "ok: Reading pauses at the first image (page 2), shows it, and continues on tap"
+  ],
+  "checks_failed": [],
+  "message": "Added “Fixture JPX”: 4 pages, 119 words, N s.",
+  "page_errors": [],
+  "stored": {
+   "books": [
+    {
+     "clause": 0,
+     "cleanup": {
+      "paras": 1,
+      "removed": [
+       {
+        "pages": 8,
+        "text": "page numbers"
+       },
+       {
+        "pages": 4,
+        "text": "FIXTURE JPX"
+       }
+      ],
+      "skippedTokens": 48
+     },
+     "emptyPages": [],
+     "failedPages": [],
+     "firstWords": "FIXTURE JPX 1 Page 1 opens with ordinary",
+     "garbled": false,
+     "images": [
+      {
+       "bbox": [
+        60,
+        300,
+        360,
+        490
+       ],
+       "local": 21,
+       "p": 1
+      }
+     ],
+     "pageCount": 4,
+     "pageText": [
+      "bcadc089cb80806b",
+      "a774c81e309939c2",
+      "371991c507494ffd",
+      "5c805069860068cc"
+     ],
+     "paragraph": 1,
+     "sentence": 12,
+     "skipped": 48,
+     "title": "Fixture JPX",
+     "totalTokens": 119
+    }
+   ],
+   "documents": 1,
+   "files": 1,
+   "pages": 4
+  }
+ },
  "notpdf.pdf": {
   "message": "“notpdf.pdf” is not a valid PDF file.",
   "page_errors": [],

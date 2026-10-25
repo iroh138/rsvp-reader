@@ -1,6 +1,7 @@
-// RSVP Speed Reader service worker. Version 57f47aacb2
-const APP = 'rsvp-app-57f47aacb2', FONTS = 'rsvp-fonts';
-const FILES = ["./", "index.html", "manifest.webmanifest", "vendor/pdf.min.js", "vendor/pdf.worker.min.js", "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
+// SPDX-License-Identifier: AGPL-3.0-only
+// RSVP Speed Reader service worker. TEMPLATE: scripts/build.mjs fills in the version and the file list and writes dist/sw.js.
+const APP = 'rsvp-app-__VERSION__', FONTS = 'rsvp-fonts';
+const FILES = __FILES__;
 self.addEventListener('install', e => { e.waitUntil(caches.open(APP).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== APP && k !== FONTS).map(k => caches.delete(k)))).then(() => self.clients.claim()));

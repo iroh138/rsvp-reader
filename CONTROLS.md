@@ -54,7 +54,7 @@
 |---|---|---|---|---|---|---|
 | SEC-03 | Nepouzdani ulazi: PDF (`isEvalSupported:false` na svim `getDocument`, limit veličine, korpus oštećenih/zlonamernih PDF-ova) i uvoz pozicija (validacija tipa i opsega; poznat bag `index.html:1762, 1782`) | B | Testovi sa negativnim slučajevima | app-security | Vlasnik | Neuspešno (validacija uvoza pozicija, launch-check 2026-10-24) |
 | SEC-04 | Produkciona konfiguracija: HTTPS, CSP (header ili meta), bez spoljnih resursa, bez izloženih fajlova, build bez debug panela | B | Provera headera na prod URL-u + pregled builda | app-security | Vlasnik | Nedostaje dokaz (nema CSP-a, debug paneli u produkciji) |
-| SEC-06 | SCA zavisnosti; pdf.js 3.11.174 je zastareo (CVE-2024-4367 ublažen kroz `isEvalSupported:false`) | R | SCA izveštaj + plan nadogradnje | app-security | Vlasnik | Nedostaje dokaz |
+| SEC-06 | SCA zavisnosti; pdf.js 3.11.174 je zastareo (CVE-2024-4367 ublažen kroz `isEvalSupported:false`) | R | SCA izveštaj + plan nadogradnje | app-security | Vlasnik | Delimično: 0 npm zavisnosti, `npm audit` u CI-ju, vendor pdf.js bajt-identičan npm `pdfjs-dist@3.11.174` i proveren SHA-256 u buildu (`phase-3-foundation`, 2026-10-24); pdf.js i dalje zastareo |
 | SEC-07 | Threat model: PDF parser, lanac isporuke (hosting, SW, store build), uvoz pozicija | R | `docs/threat-model.md` | app-security | Vlasnik | Nacrt (P1–P5), čeka ljudski pregled; 2026-10-24 |
 
 ## Privatnost i pravo (stavke označene † zahtevaju stručnu proveru)
@@ -68,15 +68,15 @@
 | LEG-01† | Distribucija i prodaja dozvoljene: Apple/Google developer nalozi za srpsko lice; trader status prema EU DSA u obe prodavnice; Google Play merchant podrška za Srbiju; **patentni rizik RSVP/ORP prikaza (crveno pivot slovo)** | B | Aktivni nalozi + pravna beleška o patentima | app-privacy-legal | Vlasnik | Nedostaje dokaz. Nalazi: Google Play merchant podržava Srbiju; Apple isplata nepotvrđena; EP2872984B1 identifikovan, status po zemljama neproveren (`docs/phase-1/03-memo-naplata.md`) |
 | LEG-02† | Poreski model sproveden (MoR ili sopstveni PDV/OSS) — **uslovno** | B | Odluka + mišljenje knjigovođe | app-privacy-legal | Vlasnik | Uslovno |
 | LEG-03† | EAA (EU Accessibility Act): da li je aplikacija „softver namenjen e-knjigama“ i važi li izuzetak za mikropreduzeća | B | Pravna beleška; ako važi, WCAG 2.2 AA dokaz | app-privacy-legal | Vlasnik | Nedostaje dokaz |
-| LEG-04 | Licence: `LICENSE` za sopstveni kod, Apache-2.0 tekst za pdf.js, OFL za fontove | R | Fajlovi licenci u repou i u buildovima | app-privacy-legal | Vlasnik | Nedostaje dokaz (nema `LICENSE`) |
-| CRA-01† | CRA: proces prijave aktivno iskorišćenih ranjivosti (24 h / 72 h) za aplikacije u prodavnicama na EU tržištu; kontakt za prijavu ranjivosti | B | Proces + `SECURITY.md` | app-privacy-legal | Vlasnik | Nedostaje dokaz |
+| LEG-04 | Licence: `LICENSE` za sopstveni kod, Apache-2.0 tekst za pdf.js, OFL za fontove | R | Fajlovi licenci u repou i u buildovima | app-privacy-legal | Vlasnik | Delimično: `LICENSE` (AGPL-3.0-only), `THIRD_PARTY_NOTICES.md`, `licenses/pdfjs-Apache-2.0.txt` (`phase-3-foundation`, 2026-10-24); fontovi još sa Google-a |
+| CRA-01† | CRA: proces prijave aktivno iskorišćenih ranjivosti (24 h / 72 h) za aplikacije u prodavnicama na EU tržištu; kontakt za prijavu ranjivosti | B | Proces + `SECURITY.md` | app-privacy-legal | Vlasnik | Delimično: `SECURITY.md` (`phase-3-foundation`, 2026-10-24); private vulnerability reporting i proces 24 h/72 h nedostaju |
 
 ## Distribucija i naplata
 
 | ID | Kontrola i provera | Gate | Dokaz | Skill | Vlasnik | Status / dokaz (commit, datum) |
 |---|---|---|---|---|---|---|
 | DST-01 | Zahtevi prodavnica: Apple guideline 4.2 (minimalna funkcionalnost web omotača), age rating, support URL, privacy label; Google Play target API, Data safety, Digital Asset Links za TWA | B | Odobren review u obe prodavnice | app-billing-distribution | Vlasnik | Nedostaje dokaz |
-| DST-02 | Signing i integritet ažuriranja: Play App Signing, Apple sertifikati van repoa; PWA se objavljuje samo iz CI-ja; SW verzija generisana u buildu | B | Opis ključeva + CI log objave | app-billing-distribution | Vlasnik | Nedostaje dokaz |
+| DST-02 | Signing i integritet ažuriranja: Play App Signing, Apple sertifikati van repoa; PWA se objavljuje samo iz CI-ja; SW verzija generisana u buildu | B | Opis ključeva + CI log objave | app-billing-distribution | Vlasnik | Delimično: `sw.js` generisan u buildu sa hash verzijom (`phase-3-foundation`, 2026-10-24); deploy iz CI-ja i signing nedostaju |
 | BIL-01 | Pristup plaćenim funkcijama ne zavisi samo od klijentskog signala (StoreKit/Play Billing verifikacija) — **uslovno** | B | Negativni testovi | app-billing-distribution | Vlasnik | Uslovno |
 | BIL-02 | Webhook potpis, replay, idempotency — **uslovno, samo ako postoji server** | B | Testovi | app-billing-distribution | Vlasnik | Uslovno |
 | BIL-03 | Refund, otkaz, neuspela naplata — **uslovno** | B | Opis toka + test | app-billing-distribution | Vlasnik | Uslovno |
@@ -87,24 +87,24 @@
 | ID | Kontrola i provera | Gate | Dokaz | Skill | Vlasnik | Status / dokaz (commit, datum) |
 |---|---|---|---|---|---|---|
 | INF-01 | Release iz označene verzije (git tag → PWA + store build) | R | Tag + CI log | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| INF-02 | CI/CD zaštićen: `uses:` pinovan na SHA, minimalni `permissions`, bez `pull_request_target` sa kodom iz fork-a, tajne samo u zaštićenom okruženju | B | Pregled workflow-a | app-delivery-ops | Vlasnik | CI ne postoji |
+| INF-02 | CI/CD zaštićen: `uses:` pinovan na SHA, minimalni `permissions`, bez `pull_request_target` sa kodom iz fork-a, tajne samo u zaštićenom okruženju | B | Pregled workflow-a | app-delivery-ops | Vlasnik | Delimično: `.github/workflows/ci.yml` — SHA pin, `contents: read`, bez fork triggera, automatska provera politike (pozitivan i negativan test lokalno) (`phase-3-foundation`, 2026-10-24); prvi CI run na GitHub-u nedostaje |
 | INF-04 | Rollback: vraćanje prethodne PWA verzije i ispravan prelaz service workera | R | Proba rollback-a | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| QA-01 | Kritični funkcionalni i regresioni testovi (tokenizer, pivot, tempo, cleanup, migracije) | B | CI test log | app-delivery-ops | Vlasnik | Nedostaje dokaz (testovi samo u UI-ju) |
+| QA-01 | Kritični funkcionalni i regresioni testovi (tokenizer, pivot, tempo, cleanup, migracije) | B | CI test log | app-delivery-ops | Vlasnik | Delimično: 14 unit testova (`tests/core.test.mjs`) + browser smoke (11/11 in-app provera identično pre i posle refaktora, uvoz PDF-a, offline) (`phase-3-foundation`, 2026-10-24); E2E u CI-ju nedostaje |
 | QA-02 | Automatizovani E2E (uvoz → čitanje → nastavak) | odl. | — | app-delivery-ops | Vlasnik | — |
 | QA-03 | Pristupačnost, interni cilj WCAG 2.2 AA; poznat neuspeh kontrasta (`#4a4a4d` na `#000`) | R | Izveštaj | app-ux-accessibility | Vlasnik | Neuspešno (kontrast) |
 | QA-04 | Provera podržanih platformi: lista verzija (Android Chrome, iOS Safari/omotač, desktop) i test na svakoj | B | Matrica testova | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| QA-05 | Unit testovi poslovnih pravila (CORE, `index.html:306-759`) | R | CI test log | app-delivery-ops | Vlasnik | Nedostaje dokaz |
+| QA-05 | Unit testovi poslovnih pravila (CORE, `index.html:306-759`) | R | CI test log | app-delivery-ops | Vlasnik | Delimično: unit testovi CORE pravila prema `docs/phase-1/02-zahtevi.md` (`phase-3-foundation`, 2026-10-24) |
 | UX-01 | Test upotrebljivosti kritičnih tokova | odl. | — | app-ux-accessibility | Vlasnik | — |
 | UX-02 | Četiri stanja ekrana: biblioteka, uvoz, čitač, prikaz dokumenta | R | Pregled ekrana | app-ux-accessibility | Vlasnik | Nedostaje dokaz |
 | OPS-02 | Incident response tabletop (kompromitovan deploy, ranjivost u pdf.js) | R | Zapisnik | app-delivery-ops | Vlasnik | Nedostaje dokaz |
 | OPS-03 | Korisnička podrška: kontakt, rok odgovora | R | Support stranica | app-delivery-ops | Vlasnik | Nedostaje dokaz |
 | TPC-01 | Kontinuitet dobavljača: alternativni hosting, rezerva naloga i ključeva prodavnica | R | Beleška | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| AI-01 | AI agent bez prod tajni i signing ključeva; novi paketi uz odobrenje | B | Pravila rada + konfiguracija | app-ai-dev-safety | Vlasnik | Nedostaje dokaz |
-| AI-02 | Nove zavisnosti proverene pre uvođenja | B | Zapis provere | app-ai-dev-safety | Vlasnik | Nedostaje dokaz |
+| AI-01 | AI agent bez prod tajni i signing ključeva; novi paketi uz odobrenje | B | Pravila rada + konfiguracija | app-ai-dev-safety | Vlasnik | Delimično: `AGENTS.md`, `.gitignore`, `docs/ai-agent-setup.md` (`phase-3-foundation`, 2026-10-24); zaštita grane i deploy okruženje čekaju vlasnika |
+| AI-02 | Nove zavisnosti proverene pre uvođenja | B | Zapis provere | app-ai-dev-safety | Vlasnik | Delimično: `.npmrc` ignore-scripts; Vitest i `pdfjs-dist` iz npm-a odbijeni zbog tranzitivnih/nativnih zavisnosti (ADR 0004 dopuna) (`phase-3-foundation`, 2026-10-24) |
 | AI-03 | Ljudski pregled P0 izmena (uvoz PDF-a, SW, uvoz pozicija, naplata) + negativan test | B | PR pregled | app-ai-dev-safety | Vlasnik | Nedostaje dokaz |
 | GOV-01 | Preostali rizici sa vlasnikom; go/no-go odluka | B | `app-launch-check` izveštaj | app-launch-check | Vlasnik | Nedostaje dokaz |
-| GOV-02 | Sve izmene kroz Git (izvorni repo ima jedan „upload“ commit) | B | Git istorija | app-delivery-ops | Vlasnik | Delimično |
-| GOV-03 | Code review svih izmena (solo: pregled AI diff-a pre merge-a) | R | PR istorija | app-delivery-ops | Vlasnik | Nedostaje dokaz |
+| GOV-02 | Sve izmene kroz Git (izvorni repo ima jedan „upload“ commit) | B | Git istorija | app-delivery-ops | Vlasnik | Delimično: sve izmene faze 3 kroz granu `phase-3-foundation`, 2026-10-24; zaštita `main` čeka vlasnika (`docs/ai-agent-setup.md`) |
+| GOV-03 | Code review svih izmena (solo: pregled AI diff-a pre merge-a) | R | PR istorija | app-delivery-ops | Vlasnik | Delimično: faza 3 ide kao PR na pregled (`phase-3-foundation`, 2026-10-24) |
 
 ## Neprimenljive stavke
 

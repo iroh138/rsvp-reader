@@ -107,9 +107,19 @@ function validSettings() {
 // pdf.js 6 (legacy build) is an ES module; it is loaded on first use so the reader starts without it.
 let pdfjsLib = null, pdfjsPromise = null, workerMode = '';
 const PDFJS_WASM = new URL('vendor/pdfjs/wasm/', location.href).href;   // JPEG 2000, JBIG2 and ICC decoders
+// pdf.js 6 needs Chrome 125+, Safari/iOS 18+ or a current Firefox (docs/adr/0005). The text layer relies on CSS round();
+// checking for it catches the browsers that are too old before anything fails half-way.
+const OLD_BROWSER = 'This browser is too old to open PDFs. Update Chrome (version 125 or newer), Safari (iOS 18 or newer) or Firefox, then reload.';
+function pdfSupported() {
+  try { return typeof Worker === 'function' && typeof WebAssembly === 'object' && CSS.supports('width', 'round(down, 10px, 1px)'); }
+  catch (e) { return false; }
+}
 function ensurePdfjs() {
   if (!pdfjsPromise) pdfjsPromise = (async () => {
-    const lib = await import('../vendor/pdfjs/pdf.min.mjs');
+    if (!pdfSupported()) throw userError(OLD_BROWSER);
+    let lib;
+    try { lib = await import('../vendor/pdfjs/pdf.min.mjs'); }
+    catch (e) { console.warn('pdf.js failed to load', e); throw userError(OLD_BROWSER); }
     lib.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
     pdfjsLib = lib;
     workerMode = 'background worker';

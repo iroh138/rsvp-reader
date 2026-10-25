@@ -28,6 +28,7 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 - `python3 tests/e2e/fonts.py http://localhost:8080/`: no third-party requests, bundled fonts in use
 - `python3 tests/e2e/positions.py http://localhost:8080/`: invalid imported or stored settings cannot break the reader
 - `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf`: updating from a previous build keeps the library
+- `python3 tests/e2e/old-browser.py http://localhost:8080/`: a browser too old for pdf.js 6 gets a clear message
 - with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
 
 Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).

@@ -10,7 +10,7 @@ import { verifyVendor } from './check-vendor.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
-const SHIP = ['index.html', 'styles.css', 'manifest.webmanifest', 'src/core.js', 'src/settings.js', 'src/app.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'vendor/fonts', 'icons'];
+const SHIP = ['index.html', 'styles.css', 'manifest.webmanifest', 'src/core.js', 'src/settings.js', 'src/storage.js', 'src/app.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'vendor/fonts', 'icons'];
 
 async function filesUnder(dir) {
   const out = [];

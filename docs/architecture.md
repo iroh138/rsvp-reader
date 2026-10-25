@@ -56,7 +56,10 @@ flowchart LR
 - Ovo treba pokriti testom prekida (T1.5).
 
 **Migracije (ARH-02):**
-- `DB_VERSION` menja šemu, i svaka promena treba zaseban `onupgradeneeded` korak po verziji. **[sada]** kod kreira store-ove bez grananja po `oldVersion`, što će puknuti već kod verzije 2.
+- Šema je u `src/storage.js` (`MIGRATIONS`, jedna funkcija po verziji). Pokreću se samo nedostajuće migracije, sve unutar jedne upgrade transakcije, pa greška vraća bazu na prethodnu verziju bez gubitka podataka.
+- Otvoren stari tab sam zatvara konekciju (`versionchange`) i ne blokira nadogradnju.
+- Posle rollback-a aplikacije novija baza se otvara na svojoj verziji, bez izmena (INF-04).
+- Ispravljeno 2026-10-25; ranije je kod kreirao store-ove bez grananja po verziji, što bi puklo već kod verzije 2.
 - `PROCESSOR_VERSION` pokreće reprocess iz sačuvanog PDF-a.
 
 ## Granice poverenja

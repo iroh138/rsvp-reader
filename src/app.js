@@ -8,6 +8,7 @@ import {
   lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages
 } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
+import { openDatabase } from './storage.js';
 
 // Developer panels are shown only with ?dev in the address.
 if (new URLSearchParams(location.search).has('dev')) document.documentElement.classList.add('dev');
@@ -46,23 +47,16 @@ class Player {
 }
 
 /* ===== Storage: IndexedDB for books, localStorage for small settings ===== */
-const DB_NAME = 'rsvp-reader', DB_VERSION = 1, PROCESSOR_VERSION = 4;
+const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 4;   // schema versions live in src/storage.js (MIGRATIONS)
 let dbPromise = null;
 function db() {
-  if (!dbPromise) dbPromise = new Promise((res, rej) => {
-    let r;
-    try { r = indexedDB.open(DB_NAME, DB_VERSION); } catch (e) { rej(e); return; }
-    r.onupgradeneeded = () => {
-      const d = r.result;
-      d.createObjectStore('documents', { keyPath: 'id' });
-      d.createObjectStore('files', { keyPath: 'docId' });
-      d.createObjectStore('pages', { keyPath: ['docId', 'pageIndex'] });
-      d.createObjectStore('progress', { keyPath: 'docId' });
-    };
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-    r.onblocked = () => rej(new Error('Storage is blocked by another open tab.'));
-  });
+  if (!dbPromise) dbPromise = openDatabase(DB_NAME, {
+    onBlocked: () => showMsg('', 'Close the other tabs of this app to finish updating your library.'),
+    onVersionChange: () => { dbPromise = null; showMsg('err', 'A newer version of the app was opened in another tab. Reload this tab.'); },
+  }).then(({ db: d, newer }) => {
+    if (newer) showMsg('', 'Your library was saved by a newer version of the app. Reload when you can to get the update.');
+    return d;
+  }).catch(e => { dbPromise = null; throw e; });
   return dbPromise;
 }
 const reqP = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });

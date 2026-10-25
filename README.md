@@ -20,7 +20,9 @@ npm run serve     # serve dist/ on http://localhost:8080
 
 Open the app with `?dev` to show the in-app acceptance checks and the paste-text panel.
 
-Browser smoke tests (optional, Python + Playwright): `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf` `python3 tests/e2e/offline.py http://localhost:8080/`, `python3 tests/e2e/fonts.py http://localhost:8080/` (no third-party requests, bundled fonts in use) and `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf` (update from a previous build keeps the library) and `python3 tests/e2e/positions.py http://localhost:8080/` (invalid imported or stored settings cannot break the reader). Test PDFs are generated with `python3 scripts/make-fixtures.py`.
+Browser smoke tests (optional, Python + Playwright): `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf` `python3 tests/e2e/offline.py http://localhost:8080/`, `python3 tests/e2e/fonts.py http://localhost:8080/` (no third-party requests, bundled fonts in use) and `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf` (update from a previous build keeps the library) `python3 tests/e2e/positions.py http://localhost:8080/` (invalid imported or stored settings cannot break the reader), and, with the repository root served (`node scripts/serve.mjs . 8080`), `python3 tests/e2e/storage.py http://localhost:8080/` (database migrations, rollback, other open tabs).
+
+Changing the IndexedDB schema: add a new function to `MIGRATIONS` in `src/storage.js`; never edit a shipped one. Test PDFs are generated with `python3 scripts/make-fixtures.py`.
 
 Deploy the contents of `dist/`, not the repository root.
 

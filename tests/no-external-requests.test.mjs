@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const FILES = ['index.html', 'styles.css', 'manifest.webmanifest', 'src/app.js', 'src/core.js', 'src/settings.js', 'src/sw.template.js', 'vendor/fonts/fonts.css'];
+const FILES = ['index.html', 'styles.css', 'manifest.webmanifest', 'src/app.js', 'src/core.js', 'src/settings.js', 'src/storage.js', 'src/sw.template.js', 'vendor/fonts/fonts.css'];
 // Allowed hosts: example.com is reserved for documentation (RFC 2606) and appears only in tokenizer test sentences.
 const ALLOWED_HOSTS = new Set(['example.com']);
 

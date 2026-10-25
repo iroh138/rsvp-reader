@@ -69,7 +69,7 @@
 | LEG-02† | Poreski model sproveden (MoR ili sopstveni PDV/OSS) — **uslovno** | B | Odluka + mišljenje knjigovođe | app-privacy-legal | Vlasnik | Uslovno |
 | LEG-03† | EAA (EU Accessibility Act): da li je aplikacija „softver namenjen e-knjigama“ i važi li izuzetak za mikropreduzeća | B | Pravna beleška; ako važi, WCAG 2.2 AA dokaz | app-privacy-legal | Vlasnik | Nedostaje dokaz |
 | LEG-04 | Licence: `LICENSE` za sopstveni kod, Apache-2.0 tekst za pdf.js, OFL za fontove | R | Fajlovi licenci u repou i u buildovima | app-privacy-legal | Vlasnik | Delimično: `LICENSE` (AGPL-3.0-only), `THIRD_PARTY_NOTICES.md`, `licenses/pdfjs-Apache-2.0.txt` (`phase-3-foundation`, 2026-10-24); fontovi još sa Google-a |
-| CRA-01† | CRA: proces prijave aktivno iskorišćenih ranjivosti (24 h / 72 h) za aplikacije u prodavnicama na EU tržištu; kontakt za prijavu ranjivosti | B | Proces + `SECURITY.md` | app-privacy-legal | Vlasnik | Delimično: `SECURITY.md` (`phase-3-foundation`, 2026-10-24); private vulnerability reporting i proces 24 h/72 h nedostaju |
+| CRA-01† | CRA: proces prijave aktivno iskorišćenih ranjivosti (24 h / 72 h) za aplikacije u prodavnicama na EU tržištu; kontakt za prijavu ranjivosti | B | Proces + `SECURITY.md` | app-privacy-legal | Vlasnik | Delimično: `SECURITY.md` + private vulnerability reporting uključen (2026-10-25); proces 24 h/72 h nedostaje |
 
 ## Distribucija i naplata
 
@@ -87,7 +87,7 @@
 | ID | Kontrola i provera | Gate | Dokaz | Skill | Vlasnik | Status / dokaz (commit, datum) |
 |---|---|---|---|---|---|---|
 | INF-01 | Release iz označene verzije (git tag → PWA + store build) | R | Tag + CI log | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| INF-02 | CI/CD zaštićen: `uses:` pinovan na SHA, minimalni `permissions`, bez `pull_request_target` sa kodom iz fork-a, tajne samo u zaštićenom okruženju | B | Pregled workflow-a | app-delivery-ops | Vlasnik | Delimično: `.github/workflows/ci.yml` — SHA pin, `contents: read`, bez fork triggera, automatska provera politike (pozitivan i negativan test lokalno) (`phase-3-foundation`, 2026-10-24); prvi CI run na GitHub-u nedostaje |
+| INF-02 | CI/CD zaštićen: `uses:` pinovan na SHA, minimalni `permissions`, bez `pull_request_target` sa kodom iz fork-a, tajne samo u zaštićenom okruženju | B | Pregled workflow-a | app-delivery-ops | Vlasnik | Ispunjeno za CI: PR #1 i push na `main` @ `62beb54` zeleni (test-and-build, secret-scan, workflow-policy), sve akcije na SHA, `contents: read`, bez fork triggera; deploy job još ne postoji (2026-10-25) |
 | INF-04 | Rollback: vraćanje prethodne PWA verzije i ispravan prelaz service workera | R | Proba rollback-a | app-delivery-ops | Vlasnik | Nedostaje dokaz |
 | QA-01 | Kritični funkcionalni i regresioni testovi (tokenizer, pivot, tempo, cleanup, migracije) | B | CI test log | app-delivery-ops | Vlasnik | Delimično: 14 unit testova (`tests/core.test.mjs`) + browser smoke (11/11 in-app provera identično pre i posle refaktora, uvoz PDF-a, offline) (`phase-3-foundation`, 2026-10-24); E2E u CI-ju nedostaje |
 | QA-02 | Automatizovani E2E (uvoz → čitanje → nastavak) | odl. | — | app-delivery-ops | Vlasnik | — |
@@ -99,12 +99,12 @@
 | OPS-02 | Incident response tabletop (kompromitovan deploy, ranjivost u pdf.js) | R | Zapisnik | app-delivery-ops | Vlasnik | Nedostaje dokaz |
 | OPS-03 | Korisnička podrška: kontakt, rok odgovora | R | Support stranica | app-delivery-ops | Vlasnik | Nedostaje dokaz |
 | TPC-01 | Kontinuitet dobavljača: alternativni hosting, rezerva naloga i ključeva prodavnica | R | Beleška | app-delivery-ops | Vlasnik | Nedostaje dokaz |
-| AI-01 | AI agent bez prod tajni i signing ključeva; novi paketi uz odobrenje | B | Pravila rada + konfiguracija | app-ai-dev-safety | Vlasnik | Delimično: `AGENTS.md`, `.gitignore`, `docs/ai-agent-setup.md` (`phase-3-foundation`, 2026-10-24); zaštita grane i deploy okruženje čekaju vlasnika |
+| AI-01 | AI agent bez prod tajni i signing ključeva; novi paketi uz odobrenje | B | Pravila rada + konfiguracija | app-ai-dev-safety | Vlasnik | Delimično: ruleset `protect-main` bez bypass-a — direktan push agenta na `main` odbijen (2026-10-25); deploy okruženje i signing čekaju izbor hostinga/Play naloga |
 | AI-02 | Nove zavisnosti proverene pre uvođenja | B | Zapis provere | app-ai-dev-safety | Vlasnik | Delimično: `.npmrc` ignore-scripts; Vitest i `pdfjs-dist` iz npm-a odbijeni zbog tranzitivnih/nativnih zavisnosti (ADR 0004 dopuna) (`phase-3-foundation`, 2026-10-24) |
 | AI-03 | Ljudski pregled P0 izmena (uvoz PDF-a, SW, uvoz pozicija, naplata) + negativan test | B | PR pregled | app-ai-dev-safety | Vlasnik | Nedostaje dokaz |
 | GOV-01 | Preostali rizici sa vlasnikom; go/no-go odluka | B | `app-launch-check` izveštaj | app-launch-check | Vlasnik | Nedostaje dokaz |
-| GOV-02 | Sve izmene kroz Git (izvorni repo ima jedan „upload“ commit) | B | Git istorija | app-delivery-ops | Vlasnik | Delimično: sve izmene faze 3 kroz granu `phase-3-foundation`, 2026-10-24; zaštita `main` čeka vlasnika (`docs/ai-agent-setup.md`) |
-| GOV-03 | Code review svih izmena (solo: pregled AI diff-a pre merge-a) | R | PR istorija | app-delivery-ops | Vlasnik | Delimično: faza 3 ide kao PR na pregled (`phase-3-foundation`, 2026-10-24) |
+| GOV-02 | Sve izmene kroz Git (izvorni repo ima jedan „upload“ commit) | B | Git istorija | app-delivery-ops | Vlasnik | Ispunjeno: `main` zaštićen rulesetom `protect-main` (PR obavezan, brisanje i force push blokirani); direktan push odbijen u testu (2026-10-25, `main` @ `62beb54`) |
+| GOV-03 | Code review svih izmena (solo: pregled AI diff-a pre merge-a) | R | PR istorija | app-delivery-ops | Vlasnik | Delimično: PR #1 pregledao i spojio vlasnik (2026-10-25); pravilo važi za sve buduće izmene |
 
 ## Neprimenljive stavke
 

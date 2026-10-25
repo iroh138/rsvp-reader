@@ -23,7 +23,7 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 |---|---|---|
 | Headless Chromium (Playwright), desktop | CI / agent | Prolazi: unit testovi, PDF korpus 9/9, smoke, offline, fontovi, pozicije, migracije, nadogradnja, stari pregledač (2026-10-25) |
 | **Android 10, Chrome (ažuriran)** | vlasnik | Nije testirano |
-| Android (tvoj telefon), Chrome | vlasnik | Nije testirano na verziji sa pdf.js 6 |
+| Android (vlasnikov telefon), Chrome, incognito, test build 2026-10-25 | vlasnik | **Prošlo uz jedan nalaz.** `book.pdf` i `images.pdf`: sve provere PASS/INFO. `jpx.pdf`: provera slike je jednom pala („Reading did not stop at the image“), a pri ponovnom pokretanju prošla. Tap → „Read from here“ radi. Offline (avionski režim) radi. Nalaz: čitanje se nije zaustavljalo pri skrolovanju (ispravljeno, PR „reader pauses when scrolled away“). Verzije Androida i Chrome-a nisu zabeležene |
 | iPhone, iOS 18, Safari | vlasnik / tester | Nije testirano |
 | Windows ili macOS, Chrome / Edge / Firefox | vlasnik | Nije testirano na verziji sa pdf.js 6 |
 
@@ -38,3 +38,12 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 4. Tapni reč na stranici, pa „Read from here“.
 5. Čitaj do slike u `jpx.pdf`: slika mora biti vidljiva.
 6. Instaliraj aplikaciju, isključi mrežu, otvori je ponovo i uvezi `book.pdf`.
+
+## Otvoreno: povremeni pad provere slike na telefonu (2026-10-25)
+
+Prvo pokretanje „Run all checks“ za `jpx.pdf` na telefonu je palo, a drugo je prošlo. U Chromium-u se pad nije mogao reprodukovati, ni pri CPU usporenju do 20x na mobilnom ekranu. Iz koda postoji više kandidata:
+- pauza zbog gubitka fokusa prozora (`blur`, npr. sistemsko obaveštenje o preuzimanju);
+- tajmer koji kasni više od 1 s, pa se tumači kao tab u pozadini;
+- ponovno otvaranje knjige tokom provere.
+
+Simulirani gubitak fokusa daje tačno taj simptom. Uzrok nije utvrđen. Provera sada ispisuje **zašto** čitanje nije stiglo do slike, npr. „Playback stopped 39 ms after the start: window lost focus“. Ako se ponovi, prepiši taj red.

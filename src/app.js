@@ -148,14 +148,18 @@ const player = new Player({
   onShow: i => { render(book.text(i)); shownLog.push([performance.now(), i]); if (shownLog.length > 60) shownLog.shift(); onWordShown(); },
   onState: () => updateUI(),
   onFinish: () => { finished = true; releaseWake(); saveProgress(); },
-  onLate: () => pauseBackground(),
+  onLate: () => pauseBackground('a timer fired more than 1 s late (treated as a background tab)'),
   gate: (a, b) => imageBetween(a, b),
   onGate: (img, next) => showImage(img, next)
 });
 const shownLog = [];
 // Android reports a locked screen up to ~1 s late, so words keep flashing unseen.
 // On a background pause, step back to the word that was on screen 1.5 s earlier.
-function pauseBackground() {
+// Why playback last stopped, for diagnostics in the acceptance checks (shown when a check fails).
+let lastStop = null;
+function noteStop(reason) { lastStop = { reason, t: performance.now() }; }
+function pauseBackground(reason) {
+  if (player.playing) noteStop(reason || 'background');
   cancelPendingStart();
   if (!player.playing) return;
   const cutoff = performance.now() - 1500;
@@ -247,8 +251,17 @@ function saveProgress() {
 async function requestWake() { try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) { wake = null; } }
 function releaseWake() { try { wake && wake.release(); } catch (e) {} wake = null; }
 
+// Reading stops when the reader is scrolled out of view: words changing off-screen are words not read.
+// Focus mode covers the whole screen, so it never triggers this.
+let readerVisible = true;
+new IntersectionObserver(([e]) => {
+  readerVisible = e.intersectionRatio >= 0.5;
+  if (!readerVisible && player.playing && !reader.classList.contains('focus')) pause('reader scrolled out of view');
+}, { threshold: [0, 0.5, 1] }).observe(reader);
+
 function start(exact, keepShown) {
   if (!book || !book.length || testing) return;
+  if (!readerVisible && !reader.classList.contains('focus')) reader.scrollIntoView({ block: 'nearest' });
   hideImage();
   if (!keepShown) justShown.clear();
   // an automatic resume rewinds a few words: do not show again an image already passed
@@ -259,7 +272,7 @@ function start(exact, keepShown) {
   requestWake();
   player.play(from);
 }
-function pause() { cancelPendingStart(); if (!player.playing) return; player.pause(); releaseWake(); saveProgress(); }
+function pause(reason) { cancelPendingStart(); if (!player.playing) return; noteStop(reason || 'paused'); player.pause(); releaseWake(); saveProgress(); }
 function step(fn) {
   if (!book || !book.length || testing) return;
   pause(); hideImage(); finished = false;
@@ -269,7 +282,7 @@ function step(fn) {
 function setWpm(d) { player.wpm = Math.max(100, Math.min(1000, player.wpm + d)); settings(false, { wpm: player.wpm }); updateUI(); }
 
 function setBook(b, idx) {
-  pause(); hideImage();
+  pause('a book was opened'); hideImage();
   suppressBefore = -1; justShown.clear();
   book = b;
   player.idx = b.length ? b.visible(Math.max(0, Math.min(idx || 0, b.length - 1))) : 0;
@@ -344,11 +357,11 @@ document.addEventListener('keydown', e => {
   else if (k === 'Escape') { if (imageMode) continueImage(); else setFocus(false); }
 });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { if (player.playing) pauseBackground(); else saveProgress(); if (testing && testPlayer) testPlayer.abort(); }
+  if (document.hidden) { if (player.playing) pauseBackground('page hidden'); else saveProgress(); if (testing && testPlayer) testPlayer.abort(); }
 });
-window.addEventListener('pagehide', () => { if (player.playing) pauseBackground(); else saveProgress(); });
-window.addEventListener('blur', () => { if (player.playing) pauseBackground(); });       // switched to another window or app
-document.addEventListener('freeze', () => { if (player.playing) pauseBackground(); });   // Android may freeze background pages
+window.addEventListener('pagehide', () => { if (player.playing) pauseBackground('page hide'); else saveProgress(); });
+window.addEventListener('blur', () => { if (player.playing) pauseBackground('window lost focus'); });       // switched to another window or app
+document.addEventListener('freeze', () => { if (player.playing) pauseBackground('page frozen'); });   // Android may freeze background pages
 
 /* ===== Library ===== */
 let libRows = new Map(), dbOk = true;
@@ -1165,10 +1178,16 @@ async function imageCheck() {
   const img = imgs[0], was = player.idx, wpm = player.wpm;
   reader.scrollIntoView({ block: 'nearest' });
   player.wpm = 1000;
-  player.idx = img.g; start(Math.max(0, img.g - 3));
+  lastStop = null;
   const t0 = performance.now();
+  player.idx = img.g; start(Math.max(0, img.g - 3));
+  const startedPlaying = player.playing;
   while (!(imageMode && $('imgCanvas').dataset.ready) && performance.now() - t0 < 6000) await new Promise(r => setTimeout(r, 50));
   const shown = !!imageMode && imageMode.img.n === img.n;
+  // If reading never reached the image, say why (device tests showed a one-off failure that could not be reproduced).
+  const why = shown ? '' : !startedPlaying ? ' Playback did not start.'
+    : lastStop ? ` Playback stopped ${Math.round(lastStop.t - t0)} ms after the start: ${lastStop.reason}.`
+    : player.playing ? ` Still reading at word ${player.idx + 1}; the image comes after word ${img.g + 1}.` : ' Playback stopped for an unknown reason.';
   let painted = false;
   if (shown && $('imgCanvas').dataset.ready) {
     const cv = $('imgCanvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
@@ -1184,7 +1203,7 @@ async function imageCheck() {
   player.wpm = wpm; player.idx = was; render(book.text(was)); updateUI();
   addResult(shown && painted && resumed ? 'ok' : 'bad',
     `Reading pauses at the first image (page ${img.p + 1}), shows it, and continues on tap`,
-    shown ? `Shown after “${after}”. Picture drawn: ${painted ? 'yes' : 'no'}. Continued with the next word: ${resumed ? 'yes' : 'no'}. ${imgs.length} image${imgs.length > 1 ? 's' : ''} in this book.` : 'Reading did not stop at the image.');
+    shown ? `Shown after “${after}”. Picture drawn: ${painted ? 'yes' : 'no'}. Continued with the next word: ${resumed ? 'yes' : 'no'}. ${imgs.length} image${imgs.length > 1 ? 's' : ''} in this book.` : 'Reading did not stop at the image.' + why);
 }
 
 let testPlayer = null;

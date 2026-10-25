@@ -1,0 +1,223 @@
+{
+ "book.pdf": {
+  "checks": [
+   "ok: Every character of “Fixture Book” belongs to exactly one word, in order (8 pages, 739 words)",
+   "ok: Tapping a word on the page selects that word: 20/20 (limit 95%) across 5 pages",
+   "info: Images: none found in this book, so reading never pauses for one."
+  ],
+  "checks_failed": [],
+  "message": "Added “Fixture Book”: 8 pages, 739 words, N s.",
+  "page_errors": [],
+  "stored": {
+   "books": [
+    {
+     "clause": 27,
+     "cleanup": {
+      "paras": 14,
+      "removed": [
+       {
+        "pages": 8,
+        "text": "FIXTURE BOOK"
+       },
+       {
+        "pages": 8,
+        "text": "page numbers"
+       }
+      ],
+      "skippedTokens": 24
+     },
+     "emptyPages": [],
+     "failedPages": [],
+     "firstWords": "FIXTURE BOOK 1 The quick reader moves through",
+     "garbled": false,
+     "images": [],
+     "pageCount": 8,
+     "pageText": [
+      "92dbd517178d294e",
+      "4ec5e7cbb921952d",
+      "dc3bd07a3cb9b196",
+      "9fa16c7a0212b57c",
+      "53f6a4e4911ee83f",
+      "4a716dd0f3c011ab",
+      "6a1f370267ffd566",
+      "491ee748f182dd9a"
+     ],
+     "paragraph": 14,
+     "sentence": 47,
+     "skipped": 24,
+     "title": "Fixture Book",
+     "totalTokens": 739
+    }
+   ],
+   "documents": 1,
+   "files": 1,
+   "pages": 8
+  }
+ },
+ "cyrillic.pdf": {
+  "checks": [
+   "ok: Every character of “Ћирилица” belongs to exactly one word, in order (6 pages, 399 words)",
+   "ok: Tapping a word on the page selects that word: 20/20 (limit 95%) across 5 pages",
+   "info: Images: none found in this book, so reading never pauses for one."
+  ],
+  "checks_failed": [],
+  "message": "Added “Ћирилица”: 6 pages, 399 words, N s.",
+  "page_errors": [],
+  "stored": {
+   "books": [
+    {
+     "clause": 96,
+     "cleanup": {
+      "paras": 11,
+      "removed": [
+       {
+        "pages": 6,
+        "text": "ЋИРИЛИЦА"
+       },
+       {
+        "pages": 6,
+        "text": "page numbers"
+       }
+      ],
+      "skippedTokens": 12
+     },
+     "emptyPages": [],
+     "failedPages": [],
+     "firstWords": "ЋИРИЛИЦА 1 Читач приказује једну по једну реч,",
+     "garbled": true,
+     "images": [],
+     "pageCount": 6,
+     "pageText": [
+      "5e12eec03eaf1fa0",
+      "91189576d074ee89",
+      "6a9631330f640a13",
+      "a96c7198a9ae9de7",
+      "ce87c4ec7e2621e7",
+      "44ea7482d5fe9b6c"
+     ],
+     "paragraph": 11,
+     "sentence": 36,
+     "skipped": 12,
+     "title": "Ћирилица",
+     "totalTokens": 399
+    }
+   ],
+   "documents": 1,
+   "files": 1,
+   "pages": 6
+  }
+ },
+ "encrypted.pdf": {
+  "message": "This PDF is password-protected. Password-protected PDFs are not supported yet.",
+  "page_errors": [],
+  "stored": {
+   "books": [],
+   "documents": 0,
+   "files": 0,
+   "pages": 0
+  }
+ },
+ "garbage.pdf": {
+  "message": "This PDF is damaged or uses a format the reader cannot open.",
+  "page_errors": [],
+  "stored": {
+   "books": [],
+   "documents": 0,
+   "files": 0,
+   "pages": 0
+  }
+ },
+ "images.pdf": {
+  "checks": [
+   "ok: Every character of “Fixture Images” belongs to exactly one word, in order (5 pages, 152 words)",
+   "ok: Tapping a word on the page selects that word: 20/20 (limit 95%) across 5 pages",
+   "ok: Reading pauses at the first image (page 2), shows it, and continues on tap"
+  ],
+  "checks_failed": [],
+  "message": "Added “Fixture Images”: 5 pages, 152 words, N s.",
+  "page_errors": [],
+  "stored": {
+   "books": [
+    {
+     "clause": 0,
+     "cleanup": {
+      "paras": 5,
+      "removed": [
+       {
+        "pages": 10,
+        "text": "page numbers"
+       },
+       {
+        "pages": 5,
+        "text": "FIXTURE IMAGES"
+       }
+      ],
+      "skippedTokens": 65
+     },
+     "emptyPages": [],
+     "failedPages": [],
+     "firstWords": "FIXTURE IMAGES 1 Page 1 begins with a",
+     "garbled": false,
+     "images": [
+      {
+       "bbox": [
+        60,
+        283.3,
+        360,
+        473.3
+       ],
+       "local": 21,
+       "p": 1
+      }
+     ],
+     "pageCount": 5,
+     "pageText": [
+      "4c5a5dd5d305716e",
+      "5bbb6dc1fe17a963",
+      "8227a15ac33bf897",
+      "6463a00ee6cd75be",
+      "bc968b288d4b36a8"
+     ],
+     "paragraph": 5,
+     "sentence": 15,
+     "skipped": 65,
+     "title": "Fixture Images",
+     "totalTokens": 152
+    }
+   ],
+   "documents": 1,
+   "files": 1,
+   "pages": 5
+  }
+ },
+ "notpdf.pdf": {
+  "message": "“notpdf.pdf” is not a valid PDF file.",
+  "page_errors": [],
+  "stored": {
+   "books": [],
+   "documents": 0,
+   "files": 0,
+   "pages": 0
+  }
+ },
+ "scanned.pdf": {
+  "message": "This PDF has no text layer (it looks scanned). Scanned PDFs are not supported.",
+  "page_errors": [],
+  "stored": {
+   "books": [],
+   "documents": 0,
+   "files": 0,
+   "pages": 0
+  }
+ },
+ "truncated.pdf": {
+  "message": "This PDF is damaged or uses a format the reader cannot open.",
+  "page_errors": [],
+  "stored": {
+   "books": [],
+   "documents": 0,
+   "files": 0,
+   "pages": 0
+  }
+ }
+}

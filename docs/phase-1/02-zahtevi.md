@@ -38,6 +38,7 @@ Neuspešni slučajevi: PDF koji obori pdf.js worker; stranice koje se ne mogu pr
 | T3.5 | Pauza pa nastavak → kreće od početka tekuće rečenice, najviše 20 reči unazad | U |
 | T3.6 | Slika u knjizi → čitanje staje na njenom mestu, slika se prikazuje, a „Continue“ nastavlja | E |
 | T3.7 | Tab ili aplikacija u pozadini → čitanje se pauzira bez preskakanja reči | E |
+| T3.9 | Čitač skrolovan van ekrana (manje od pola vidljivo, van fokus moda) → čitanje se pauzira i ne nastavlja se samo; Play/Space vraća čitač na ekran (zahtev vlasnika posle testa na uređaju, 2026-10-25) | E (`tests/e2e/scroll-pause.py`) |
 | T3.8 | Uvoz podešavanja sa neispravnim vrednostima (string, negativan broj, van opsega) → odbijeno ili ograničeno na opseg | U, E (`tests/settings.test.mjs`, `tests/e2e/positions.py`; ispravljeno 2026-10-25) |
 
 ## T4 — Nastavak čitanja

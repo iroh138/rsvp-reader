@@ -74,13 +74,32 @@ async function deleteBook(id) {
   t.objectStore('progress').delete(id); t.objectStore('pages').delete(pageRange(id));
   return txDone(t);
 }
+// Pages without a document are left over from an import that was interrupted (tab closed, crash, out of space).
+// An import running in ANOTHER tab looks exactly the same, so ids it holds a lock for are left alone (ARH-01).
 async function cleanOrphans() {
   const d = await db();
   const docs = new Set(await reqP(d.transaction('documents').objectStore('documents').getAllKeys()));
   const keys = await reqP(d.transaction('pages').objectStore('pages').getAllKeys());
-  const orphan = new Set(keys.map(k => k[0]).filter(id => !docs.has(id)));
+  const busy = await importsInProgress();
+  const orphan = new Set(keys.map(k => k[0]).filter(id => !docs.has(id) && !busy.has(id)));
   for (const id of orphan) { const t = d.transaction('pages', 'readwrite'); t.objectStore('pages').delete(pageRange(id)); await txDone(t); }
   return orphan.size;
+}
+// Web Locks: one lock per book id while it is being imported, visible to every tab of this origin.
+const IMPORT_LOCK = 'rsvp-import:';
+async function importLock(id) {
+  if (!(navigator.locks && navigator.locks.request)) return () => {};
+  let release;
+  const held = new Promise(r => { release = r; });
+  await new Promise(granted => { navigator.locks.request(IMPORT_LOCK + id, () => { granted(); return held; }); });
+  return release;
+}
+async function importsInProgress() {
+  if (!(navigator.locks && navigator.locks.query)) return new Set();
+  try {
+    const q = await navigator.locks.query();
+    return new Set([...(q.held || []), ...(q.pending || [])].map(l => l.name).filter(n => n && n.startsWith(IMPORT_LOCK)).map(n => n.slice(IMPORT_LOCK.length)));
+  } catch (e) { return new Set(); }
 }
 function settings(get, val) {
   try {
@@ -549,14 +568,15 @@ async function importPdf(file, { batch = false } = {}) {
   const box = $('importBox'); box.hidden = false;
   $('importName').textContent = file.name; $('importFill').style.width = '0'; $('importMeta').textContent = 'Reading file…';
   $('addBtn').disabled = true;
-  let id = null, pdf = null, wrotePages = false;
-  const finish = () => { box.hidden = true; $('addBtn').disabled = false; job = null; };
+  let id = null, pdf = null, wrotePages = false, unlock = () => {};
+  const finish = () => { box.hidden = true; $('addBtn').disabled = false; job = null; unlock(); };
   const rollback = async () => { if (id && wrotePages) { try { const d = await db(); const t = d.transaction('pages', 'readwrite'); t.objectStore('pages').delete(pageRange(id)); await txDone(t); } catch (e) {} } };
   try {
     const buf = await file.arrayBuffer();
     const head = new Uint8Array(buf, 0, Math.min(1024, buf.byteLength));
     if (!String.fromCharCode.apply(null, head).includes('%PDF-')) throw userError(`“${file.name}” is not a valid PDF file.`);
     id = (await sha256Hex(buf)) || `${file.name}|${file.size}|${file.lastModified}`;
+    unlock = await importLock(id);   // waits if another tab is importing the same PDF right now
     const existing = await idbGet('documents', id);
     if (existing) { finish(); if (batch) return { status: 'exists', id, title: existing.title }; showMsg('', `“${existing.title}” is already in your library. Opened it.`); openBook(id, true); return; }
 
@@ -588,11 +608,17 @@ async function importPdf(file, { batch = false } = {}) {
       processorVersion: PROCESSOR_VERSION, engine: workerMode, createdAt: Date.now(),
       importMs: Math.round(performance.now() - me.t0)
     };
+    // The document becomes visible only together with its file, and only if every page is still there.
     const d = await db();
-    const t = d.transaction(['files', 'documents'], 'readwrite');
-    t.objectStore('files').put({ docId: id, blob: file });
-    t.objectStore('documents').put(doc);
-    await txDone(t);
+    const t = d.transaction(['pages', 'files', 'documents'], 'readwrite');
+    const counted = t.objectStore('pages').count(pageRange(id));
+    counted.onsuccess = () => {
+      if (counted.result !== total) { t.abort(); return; }
+      t.objectStore('files').put({ docId: id, blob: file });
+      t.objectStore('documents').put(doc);
+    };
+    try { await txDone(t); }
+    catch (e) { if (counted.readyState === 'done' && counted.result !== total) throw userError('The import was interrupted. Nothing was saved. Add the PDF again.'); throw e; }
     try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
     finish();
     if (batch) return { status: 'added', id, title };

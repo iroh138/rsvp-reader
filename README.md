@@ -33,6 +33,7 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 - `python3 tests/e2e/scroll-pause.py http://localhost:8080/`: reading stops when the reader is scrolled off screen (and only then)
 - `python3 tests/e2e/backup.py http://localhost:8080/`: back up on one device, restore on another (same books, text, positions and settings; damaged files refused)
 - `python3 tests/e2e/csp.py http://localhost:8080/`: the app works under the production headers with zero Content-Security-Policy violations
+- `python3 tests/e2e/integrity.py http://localhost:8080/`: out of space, a tab closed mid-import, and a second tab never leave a half-saved or broken library (needs `reportlab`)
 - with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
 
 Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).

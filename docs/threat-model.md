@@ -61,7 +61,8 @@ Sredstva (zajednička za sve tokove):
   - **A11:** krađa upload ključa ili Apple sertifikata → lažno ažuriranje u prodavnici.
 - **Posledice:** potpuna kompromitacija S-a, S-b, S-c kod svih korisnika; gubitak S-e.
 - **Kontrole:**
-  - 2FA na GitHub-u i hostingu;
+  - 2FA na GitHub-u i hostingu (Cloudflare);
+  - Cloudflare API token ograničen na Pages (Edit) za jedan nalog, čuva se samo kao tajna GitHub okruženja `production` (samo `main`); dobijaju ga samo Wrangler koraci;
   - zaštićena `main` grana;
   - deploy samo iz CI-ja sa taga (DST-02, INF-01);
   - Actions pinovane na SHA, `permissions: contents: read` osim deploy koraka (INF-02);
@@ -76,7 +77,7 @@ Sredstva (zajednička za sve tokove):
 - **Akteri:** drugi kod na **istom origin-u**; osoba sa fizičkim pristupom otključanom uređaju; ekstenzije pregledača.
 - **Granica poverenja:** origin aplikacije. IndexedDB, Cache Storage i localStorage dele svi skriptovi istog origin-a, bez obzira na putanju.
 - **Napadi:**
-  - **A12 (zavisi od hostinga, verovatno relevantno):** ako je aplikacija na `iroh138.github.io/<repo>`, svaki drugi tvoj GitHub Pages projekat na `iroh138.github.io` je isti origin. Kompromitovan ili neoprezan drugi projekat može da čita celu biblioteku i da registruje SW sa šire putanje.
+  - **A12 (rešeno za produkciju 2026-10-27: `read.pages.dev` je sopstveni origin; i dalje važi za test build na github.io):** ako je aplikacija na `iroh138.github.io/<repo>`, svaki drugi tvoj GitHub Pages projekat na `iroh138.github.io` je isti origin. Kompromitovan ili neoprezan drugi projekat može da čita celu biblioteku i da registruje SW sa šire putanje.
   - **A13:** fizički pristup uređaju → knjige su čitljive. Van opsega: zaštita je zaključavanje uređaja; aplikacija ne šifruje podatke.
   - **A14:** iOS Safari briše skladište neinstaliranih sajtova posle perioda neaktivnosti → gubitak biblioteke (dostupnost, ne poverljivost).
 - **Kontrole:**

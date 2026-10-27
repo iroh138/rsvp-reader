@@ -20,21 +20,21 @@ with sync_playwright() as p:
     out["meta"] = pg.inner_text("#meta")
     if pg.is_visible("#checkBtn"):
         pg.click("#checkBtn")
-        pg.wait_for_function("document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=60000)
+        pg.wait_for_function("() => document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=60000)
         pg.wait_for_timeout(2000)
         out["results"] = [ (r.get_attribute("class").split()[-1], r.locator(".txt").inner_text().split("\n")[0][:110]) for r in pg.locator("#results .res").all()]
     # PDF import, then the book-based checks
     pdf = sys.argv[2] if len(sys.argv) > 2 else None
     if pdf:
         pg.set_input_files("#fileIn", pdf)
-        pg.wait_for_function("(document.querySelector('#libMsg').textContent||'').length > 0", timeout=60000)
+        pg.wait_for_function("() => (document.querySelector('#libMsg').textContent||'').length > 0", timeout=60000)
         out["import"] = pg.inner_text("#libMsg")
         pg.wait_for_timeout(1500)
         out["books"] = pg.locator("#books .book .t").all_inner_texts()
         if pg.is_visible("#checkBtn"):
             pg.locator("#results").evaluate("e => e.innerHTML = ''")
             pg.click("#checkBtn")
-            pg.wait_for_function("document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=60000)
+            pg.wait_for_function("() => document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=60000)
             pg.wait_for_timeout(4000)
             out["pdf_results"] = [ (r.get_attribute("class").split()[-1], r.locator(".txt").inner_text().split("\n")[0][:110]) for r in pg.locator("#results .res").all()]
     pg.keyboard.press("Space"); pg.wait_for_timeout(1200); pg.keyboard.press("Space")

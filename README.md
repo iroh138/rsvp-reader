@@ -32,6 +32,7 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 - `python3 tests/e2e/old-browser.py http://localhost:8080/`: a browser too old for pdf.js 6 gets a clear message
 - `python3 tests/e2e/scroll-pause.py http://localhost:8080/`: reading stops when the reader is scrolled off screen (and only then)
 - `python3 tests/e2e/backup.py http://localhost:8080/`: back up on one device, restore on another (same books, text, positions and settings; damaged files refused)
+- `python3 tests/e2e/csp.py http://localhost:8080/`: the app works under the production headers with zero Content-Security-Policy violations
 - with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
 
 Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).
@@ -40,7 +41,13 @@ Updating pdf.js: `scripts/update-pdfjs.mjs` (instructions inside), then run the 
 
 Changing the IndexedDB schema: add a new function to `MIGRATIONS` in `src/storage.js`; never edit a shipped one.
 
-Deploy the contents of `dist/`, not the repository root.
+## Deployment
+
+Production runs on Cloudflare Pages (project `read`, `docs/adr/0003-sopstveni-origin-i-hosting.md`). Deploys come only from CI: GitHub → Actions → *Deploy production (Cloudflare Pages)* → *Run workflow* on `main`. The workflow tests, builds, deploys `dist/` with Wrangler (exact versions in `deploy/package-lock.json`) and then checks the live site (`scripts/verify-deploy.mjs`).
+
+- Security headers live in `hosting/_headers` and are copied into `dist/` by the build. `npm run serve` applies them too.
+- The Cloudflare and GitHub accounts must have two-factor authentication. Whoever controls either account can ship code to every user.
+- Deploy the contents of `dist/`, not the repository root.
 
 Project documents: `PLAN.md`, `CONTROLS.md`, `docs/`.
 

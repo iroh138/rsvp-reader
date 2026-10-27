@@ -36,6 +36,7 @@ flowchart LR
 | `core.js` | Čiste funkcije: `tokenize`, `pivotOf`, `factorOf`, `Book`, `applyCleanup`, `findImageBoxes`, `placeImages` (`index.html:306-759`) | Unit (QA-05), bez DOM-a |
 | `player.js` | `Player` scheduler (deadline-based) | Unit sa lažnim satom |
 | `storage.js` | IndexedDB šema, migracije, uvoz/izvoz pozicija sa validacijom šeme | Unit (fake-indexeddb) + E2E |
+| `backup.js` | Format rezervne kopije biblioteke (ZIP bez kompresije: PDF-ovi + `library.json`), čitanje uz strogu proveru oblika | Unit (`tests/backup.test.mjs`) + E2E (`tests/e2e/backup.py`) |
 | `pdf.js` adapter | Učitavanje PDF-a, `isEvalSupported:false`, ekstrakcija teksta i slika | Integracioni, sa korpusom PDF-ova |
 | `app.js` | UI, događaji, reader, prikaz dokumenta | E2E |
 | `sw.js` | Generisan u buildu: lista fajlova i hash verzije | E2E (offline, ažuriranje, rollback) |

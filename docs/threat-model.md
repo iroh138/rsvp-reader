@@ -99,3 +99,9 @@ Sredstva (zajednička za sve tokove):
 1. CSP je glavna kontrola za P1 i P3. Da bi bila stroga (bez `unsafe-inline`), inline `<script>` i `<style>` moraju u fajlove (ADR 0004).
 2. `frame-ancestors` i HSTS zahtevaju HTTP headere. Meta CSP ne podržava `frame-ancestors`, a GitHub Pages ne dozvoljava sopstvene headere (ADR 0003).
 3. Sopstveni origin je preduslov za razdvajanje podataka (A12).
+
+## Dopuna 2026-10-27 — rezervna kopija biblioteke (DEX-01)
+
+- **Fajl rezervne kopije je nepouzdan ulaz** (kao nalepljene pozicije, P2). Čitač prihvata samo oblik koji aplikacija sama piše: tačno `library.json` i `books/<broj>.pdf`, bez kompresije i šifrovanja, zapisi jedan za drugim bez preklapanja, zaglavlja usklađena, najviše 200 MB po knjizi. Putanje kao `../` se odbijaju, a fajlovi se ionako ne pišu na disk.
+- **PDF-ovi iz kopije prolaze kroz isti uvoz kao novi PDF** (pdf.js u worker-u, P1). Obrađene stranice se ne čitaju iz fajla, pa ne mogu da se podmetnu.
+- **Privatnost:** kopija sadrži same knjige i pozicije čitanja. Napušta uređaj samo kada je korisnik sačuva ili pošalje negde. Poruka posle izvoza to kaže („it contains your books“).

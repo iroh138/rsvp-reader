@@ -6,7 +6,7 @@ import {
   factorOf, cutRun, tokenize, buildPage, sentenceStart, rewindTarget,
   prevSentence, nextSentence, Book, extractLines, ROMAN, lineSig,
   lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages, viewportRect, textQuality
-} from './core.js';
+, stepPick } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
 import { openDatabase } from './storage.js';
 import { zipParts, crc32Update, libraryManifest, readEnd, readCentral, checkLocal, parseLibraryManifest, BACKUP } from './backup.js';
@@ -855,6 +855,7 @@ function docRefreshPos() {
   docv.posPage = p;
   if (docv.pages[p]) drawHighlights(docv.pages[p]);
 }
+const PICK_HINT = 'Tap a word on the page to choose where reading starts. With a keyboard: arrow keys, then Enter.';
 function setPick(g) {
   const old = docv.pick;
   docv.pick = g;
@@ -864,7 +865,7 @@ function setPick(g) {
   }
   const btn = $('readHereBtn'), lab = $('pickLabel');
   btn.disabled = g == null;
-  if (g == null) { lab.textContent = 'Tap a word on the page to choose where reading starts.'; return; }
+  if (g == null) { lab.textContent = PICK_HINT; return; }
   lab.textContent = '';
   const b = document.createElement('b'); b.textContent = `“${book.text(g)}”`;
   lab.append(b, ` · page ${book.pageOf(g) + 1} · word ${fmtN(g + 1)}`);
@@ -900,6 +901,19 @@ pagesEl.addEventListener('click', e => {
   const st = docv.pages[+el.dataset.p];
   const g = hitTest(st, e.clientX, e.clientY, e.target);
   if (g != null) setPick(book.visible(g));
+});
+// Keyboard: in the focused document view, ←/→ move the chosen word, ↑/↓ move it by a sentence, Enter reads from it.
+// The first key starts at the current reading position. Other keys (Page Up/Down, Space) keep their usual meaning.
+docScroll.addEventListener('keydown', e => {
+  if (!book || !book.length || e.metaKey || e.ctrlKey || e.altKey) return;
+  const moves = { ArrowLeft: [-1, 'word'], ArrowRight: [1, 'word'], ArrowUp: [-1, 'sentence'], ArrowDown: [1, 'sentence'] };
+  if (e.key === 'Enter' && docv.pick != null) { e.preventDefault(); e.stopPropagation(); $('readHereBtn').click(); return; }
+  if (!moves[e.key]) return;
+  e.preventDefault(); e.stopPropagation();   // not the reader's own arrow keys (sentence step, speed)
+  const [dir, unit] = moves[e.key];
+  const g = docv.pick == null ? book.visible(player.idx) : stepPick(book, docv.pick, dir, unit);
+  setPick(g);
+  docGoToToken(g, false, true);
 });
 $('readHereBtn').onclick = () => {
   if (docv.pick == null) return;

@@ -3,7 +3,8 @@
 Read PDF books one word at a time (rapid serial visual presentation), offline, on your own device. Books never leave the device: no account, no server, no tracking.
 
 - Imports text-based PDFs (up to 200 MB). Running headers, footers and page numbers are skipped, and words split across lines or pages are joined.
-- Choose where to start by tapping a word on the original page.
+- Choose where to start by tapping a word on the original page (or with the arrow keys and Enter).
+- Keyboard: Space play/pause, ←/→ sentence back/forward, ↑/↓ speed, F focus mode, Esc leave focus mode.
 - Natural pauses at clauses, sentence ends and paragraphs; images pause reading and are shown in place.
 - Installable as a web app (PWA) and works without a network after the first visit.
 - Back up the whole library (the PDFs, reading positions and settings) to one ZIP file and restore it on another device or browser.
@@ -34,6 +35,8 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 - `python3 tests/e2e/backup.py http://localhost:8080/`: back up on one device, restore on another (same books, text, positions and settings; damaged files refused)
 - `python3 tests/e2e/csp.py http://localhost:8080/`: the app works under the production headers with zero Content-Security-Policy violations
 - `python3 tests/e2e/integrity.py http://localhost:8080/`: out of space, a tab closed mid-import, and a second tab never leave a half-saved or broken library (needs `reportlab`)
+- `python3 tests/e2e/a11y.py http://localhost:8080/`: axe-core WCAG 2.2 A/AA scan of every main screen state (run `npm ci` in `tests/a11y` first)
+- `python3 tests/e2e/keyboard.py http://localhost:8080/`: the whole flow works with the keyboard alone, with a visible focus outline
 - with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
 
 Test PDFs are generated with `python3 scripts/make-fixtures.py` (deterministic).

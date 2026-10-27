@@ -1,0 +1,9 @@
+{
+  "name": "rsvp-reader-a11y-tests",
+  "private": true,
+  "description": "Test tool only (axe-core accessibility scanner for tests/e2e/a11y.py). Not part of the app; never shipped to users.",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "axe-core": "4.14.0"
+  }
+}

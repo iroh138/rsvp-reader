@@ -8,7 +8,8 @@ html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padd
   --line: #2a2a2e;
   --ink: #ecebe8;
   --ink-2: #9b9a98;
-  --ink-3: #6a6967;
+  --ink-3: #858481;     /* >= 4.5:1 on every surface, incl. the highlighted book row (QA-03) */
+  --stage-dim: #7a7976; /* labels on the black stage: quiet, but 4.8:1 */
   --pivot: #e5484d;
   --pass: #4cc38a;
   --warn: #e0a84a;
@@ -42,9 +43,9 @@ button, input, textarea { font: inherit; color: inherit; }
 .tick.b { top: calc(50% + var(--band) - var(--band) * .38); }
 .row { position: absolute; left: 0; top: 50%; white-space: pre; font-family: var(--word); font-weight: 400; line-height: 1; color: #f4f3ef; font-variant-ligatures: none; font-kerning: normal; will-change: transform; }
 .row .pivot { color: var(--pivot); }
-.wpm-label { position: absolute; right: 18px; bottom: 12px; font: italic 14px var(--ui); color: #4a4a4d; font-variant-numeric: tabular-nums; }
-.state-label { position: absolute; left: 18px; bottom: 12px; font: 12px var(--mono); color: #4a4a4d; letter-spacing: .04em; text-transform: uppercase; }
-.title-label { position: absolute; left: 18px; right: 18px; top: 12px; font: 12.5px var(--ui); color: #4a4a4d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpm-label { position: absolute; right: 18px; bottom: 12px; font: italic 14px var(--ui); color: var(--stage-dim); font-variant-numeric: tabular-nums; }
+.state-label { position: absolute; left: 18px; bottom: 12px; font: 12px var(--mono); color: var(--stage-dim); letter-spacing: .04em; text-transform: uppercase; }
+.title-label { position: absolute; left: 18px; right: 18px; top: 12px; font: 12.5px var(--ui); color: var(--stage-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .reader.playing .title-label { visibility: hidden; }
 
 .controls { border-top: 1px solid #1c1c1f; padding: 12px 14px 14px; display: grid; gap: 10px; transition: opacity .15s; cursor: default; }

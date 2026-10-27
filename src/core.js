@@ -155,6 +155,15 @@ export function nextSentence(flags, i) {
   return Math.min(j + 1, flags.length - 1);
 }
 
+// Keyboard choice of the start word in the document view (QA-03): one word or one sentence back or forward,
+// never landing on a skipped word (running header, page number, second half of a hyphenated word).
+export function stepPick(book, g, dir, unit) {
+  if (unit === 'sentence') return book.visible(dir < 0 ? prevSentence(book.flags, g) : nextSentence(book.flags, g));
+  let i = g + dir;
+  while (i >= 0 && i < book.length && book.flags[i] & F.SKIP) i += dir;
+  return i < 0 || i >= book.length ? g : i;
+}
+
 // A readable sequence of tokens over one or more page records.
 export class Book {
   constructor(meta, pages, opts) {

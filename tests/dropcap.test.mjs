@@ -55,3 +55,27 @@ test('ellipsis between two words splits them; the first part pauses like a sente
   }
   for (const s of ['3...5', 'www.a...b', 'https://x.org/a...b']) assert.equal(tokenize(s).length, 1, s);   // numbers and web addresses stay whole
 });
+
+test('a cap that is a word of its own ("I" + "once") is not glued, but still read in its place', () => {
+  // "once" also occurs elsewhere in the book, "ionce" never: the letter is the word "I"
+  const { rec, lines } = page([['I', 40, 400, 40], ['UTILITY VS. STATUS', 40, 520, 15],
+    ['once heard someone say that a nicer car is', 70, 414], ['plush and quiet, and once you drive it', 70, 400], ['you know it at once.', 40, 386]]);
+  const { w } = words(rec, findDropCaps(rec, lines));
+  assert.deepEqual(w.slice(0, 5), ['UTILITY', 'VS.', 'STATUS', 'I once', 'heard']);
+});
+
+test('N7: "M AYBE" in a heading is read as "MAYBE"; "A MAN" stays two words', () => {
+  const b = new Book({ id: 'x', title: 't' }, [buildPage('M AYBE YOU HAVE ENOUGH\n\nMaybe you do, and maybe not. A MAN WALKS IN\n\nThe man sat.', true)]);
+  const w = []; for (let i = b.visible(0); i < b.length; i = b.visible(i + 1)) w.push(b.text(i));
+  assert.deepEqual(w.slice(0, 4), ['MAYBE', 'YOU', 'HAVE', 'ENOUGH']);
+  assert.ok(w.includes('A') && w.includes('MAN'));
+});
+
+test('N6: control characters from a font without a text mapping are not read as words, offsets stay aligned', () => {
+  const items = [{ str: 'fall.', transform: [11, 0, 0, 11, 40, 400], width: 30, hasEOL: true }, { str: '—\u0000\u0000\u0000 \u0000\u0000', transform: [11, 0, 0, 11, 40, 386], width: 40, hasEOL: true },
+    { str: 'Greed and fear', transform: [11, 0, 0, 11, 40, 372], width: 80, hasEOL: true }];
+  const ex = extractLines(items);
+  assert.ok(!/[\u0000-\u001F]/.test(ex.text.replace(/\n/g, '')));
+  assert.equal(ex.text.length, items.reduce((n, it) => n + it.str.length + 1, 0));   // same length: text layer offsets still match
+  assert.deepEqual(tokenize(ex.text).map(t => t.text), ['fall.—', 'Greed', 'and', 'fear']);
+});

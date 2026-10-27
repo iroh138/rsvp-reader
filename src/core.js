@@ -200,18 +200,46 @@ export class Book {
     }
     // Drop caps: the letter joins the first word of its paragraph; the letter itself is not read again.
     // redirect: tapping the big letter on the page chooses that word.
+    // Whether the letter is part of the word ("A" + "n" = "An") or a word of its own ("I" + "once") is decided by
+    // the book itself: the joined form must occur at least as often as the second part does elsewhere.
+    // A word of its own is still shown in the right place, together with the next word ("I once").
     this.redirect = new Map();
     pages.forEach((pg, p) => {
       for (const [c, t] of pg.caps || []) {
         const gc = this.first[p] + c, gt = this.first[p] + t;
         if (gc >= this.first[p + 1] || gt >= this.first[p + 1]) continue;
-        const merged = this.rawText(gc).trim() + this.text(gt);
+        const cap = this.rawText(gc).trim(), word = this.text(gt);
+        const merged = this.wordCount(cap + word) >= this.wordCount(word) - 1 ? cap + word : cap + ' ' + word;   // -1: this occurrence
         this.join.set(gt, merged);
         this.len[gt] = Math.min(255, pivotOf(graphemes(merged)).n);
         this.flags[gc] = F.SKIP;
         this.redirect.set(gc, gt);
       }
     });
+    // N7: headings set with a larger first letter come out as "M AYBE", "M ONEY". A single capital followed by an
+    // all-capitals word is read as one word when the book uses the joined word more often than the second part
+    // ("MAYBE" yes; "A MAN" stays, because "aman" never occurs).
+    for (let i = 0; i + 1 < this.length; i++) {
+      if (this.flags[i] & F.SKIP || this.flags[i + 1] & F.SKIP || this.pageOf(i) !== this.pageOf(i + 1)) continue;
+      const a = this.rawText(i);
+      if (!/^\p{Lu}$/u.test(a)) continue;
+      const b = this.text(i + 1), m = /^(\p{Lu}{2,})(.*)$/u.exec(b);
+      if (!m || this.join.has(i + 1)) continue;
+      if (this.wordCount(a + m[1]) <= this.wordCount(m[1]) - 1) continue;   // -1: this occurrence
+      const merged = a + b;
+      this.join.set(i, merged);
+      this.flags[i] = (this.flags[i] & ~(F.CLAUSE | F.SENT | F.PARA)) | (this.flags[i + 1] & (F.CLAUSE | F.SENT | F.PARA));
+      this.len[i] = Math.min(255, pivotOf(graphemes(merged)).n);
+      this.flags[i + 1] = F.SKIP;
+    }
+  }
+  // How often a word occurs in the book (letters only, any case). Built once, on first use.
+  wordCount(w) {
+    if (!this._freq) {
+      this._freq = new Map();
+      for (let i = 0; i < this.length; i++) { const k = this.rawText(i).toLowerCase().replace(/[^\p{L}]/gu, ''); if (k) this._freq.set(k, (this._freq.get(k) || 0) + 1); }
+    }
+    return this._freq.get(String(w).toLowerCase().replace(/[^\p{L}]/gu, '')) || 0;
   }
   get images() {
     if (!this._images) this._images = (this.meta.images || []).map((im, n) => ({ n, p: im.p, bbox: im.bbox, g: this.first[im.p] + im.local })).filter(im => im.g >= 0).sort((a, b) => a.g - b.g || a.n - b.n);
@@ -230,8 +258,11 @@ export function extractLines(items) {
   const itemStarts = [], lines = [];
   let cur = null;
   const close = () => { if (cur) lines.push(cur); cur = null; };
-  for (const it of items) {
-    if (typeof it.str !== 'string') continue;
+  for (const it0 of items) {
+    if (typeof it0.str !== 'string') continue;
+    // N6: a font without a text mapping yields control characters (seen: NUL). They become spaces of the same
+    // length, so they are never read as words and character offsets still match the page's text layer.
+    const it = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(it0.str) ? { ...it0, str: it0.str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ') } : it0;
     itemStarts.push(text.length);
     if (it.str.trim()) {
       const t = it.transform, x = t[4], y = t[5], h = Math.hypot(t[2], t[3]) || it.height || 0;

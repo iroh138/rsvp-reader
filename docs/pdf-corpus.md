@@ -60,3 +60,15 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
   - `images.pdf` uvezen pre ispravke N1 vraća izgubljene rečenice (preskočeno 65 → 15);
   - pozicija čitanja ostaje ista.
 - Golden: promenjen je samo `cyrillic.pdf` (`garbled: true → false`).
+
+## N4 i N5 — inicijal i tri tačke (prijavio vlasnik 2026-10-27, ISPRAVLJENO)
+
+**N4 — Inicijal („drop cap“) se čitao odvojeno i na pogrešnom mestu.** U knjizi sa velikim početnim slovom pasusa („A“ pored „n important question…“) čitač je prikazivao „A“, pa naslov poglavlja, pa „n important…“. PDF čuva veliko slovo kao zaseban tekst, a neki alati ga upisuju u fajl pre naslova.
+- Ispravka: `findDropCaps` (`src/core.js`) prepoznaje red koji sadrži samo jedno slovo (uz eventualni navodnik) i bar 1,8× je veći od teksta, a odmah desno od njega je red teksta čija je osnovna linija u visini slova. To slovo se čita kao početak prve reči tog reda („An“), a samo se više ne prikazuje. Tap na veliko slovo na strani bira „An“.
+- Testovi: `tests/dropcap.test.mjs` (uključujući negativne: oznaka poglavlja „I“ iznad teksta, slovo normalne veličine, slovo daleko levo, slovo iznad teksta) i `tests/e2e/dropcap.py` sa `tests/fixtures/dropcap.pdf`. Svih 4 provera pada na starom kodu.
+- Ograničenje: ako PDF upiše slovo i prvi red tako da ih izvlačenje teksta već spoji u isti red, ništa se ne menja (tada je čitanje već ispravno). Inicijal od više slova ili slika umesto slova se ne prepoznaje.
+
+**N5 — Tri tačke između reči bez razmaka.** „odjednom...polete“ (i „…“) bila je jedna reč. Sada je to dve reči, „odjednom...“ i „polete“, sa pauzom kao na kraju rečenice, isto kao kada posle tri tačke stoji razmak. Brojevi („3...5“) i web adrese ostaju celi.
+
+`PROCESSOR_VERSION` 5 → 6: već uvezene knjige se pri prvom otvaranju jednom ponovo obrade. N4 ne menja broj reči, pa pozicija ostaje ista. N5 dodaje po jednu reč za svako „reč...reč“ pre sačuvane pozicije. Pozicija je sačuvana kao redni broj reči, pa u takvoj knjizi pada za toliko reči ranije. To je obično 0–5 reči, a čitanje ionako pri nastavku vraća do početka rečenice.
+Golden: dodat je samo `dropcap.pdf`; svih 9 postojećih fajlova je nepromenjeno.

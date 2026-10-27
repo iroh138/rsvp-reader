@@ -6,7 +6,7 @@ import {
   factorOf, cutRun, tokenize, buildPage, sentenceStart, rewindTarget,
   prevSentence, nextSentence, Book, extractLines, ROMAN, lineSig,
   lowerBound, romanValue, applyCleanup, mulM, findImageBoxes, placeImages, viewportRect, textQuality
-, stepPick } from './core.js';
+, stepPick , findDropCaps } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
 import { openDatabase } from './storage.js';
 import { zipParts, crc32Update, libraryManifest, readEnd, readCentral, checkLocal, parseLibraryManifest, BACKUP } from './backup.js';
@@ -49,7 +49,7 @@ class Player {
 
 /* ===== Storage: IndexedDB for books, localStorage for small settings ===== */
 // PROCESSOR_VERSION 5: N1 page-number rule and the language-independent garbled check; older books are re-read once.
-const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 5;   // schema versions live in src/storage.js (MIGRATIONS)
+const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 6;   // 6: drop caps, ellipsis between words. Schema versions: src/storage.js
 let dbPromise = null;
 function db() {
   if (!dbPromise) dbPromise = openDatabase(DB_NAME, {
@@ -517,6 +517,7 @@ async function processPdf(pdf, id, me, onPage) {
   }
   const scanned = pageSizes.length < total ? true : empty.length > total / 2;
   const cleanup = scanned ? null : applyCleanup(pdata);
+  if (!scanned) for (const pd of pdata) { const caps = findDropCaps(pd.rec, pd.lines); if (caps.length) pd.rec.caps = caps; }
   const images = scanned ? [] : placeImages(pdata);
   pdata.forEach(pd => { delete pd.lines; delete pd.boxes; });
   const withImage = new Set(images.map(im => im.p + 1));
@@ -910,7 +911,7 @@ pagesEl.addEventListener('click', e => {
   const el = e.target.closest('.pg'); if (!el) return;
   const st = docv.pages[+el.dataset.p];
   const g = hitTest(st, e.clientX, e.clientY, e.target);
-  if (g != null) setPick(book.visible(g));
+  if (g != null) setPick(book.visible(book.redirect.has(g) ? book.redirect.get(g) : g));   // a drop cap picks its word
 });
 // Keyboard: in the focused document view, ←/→ move the chosen word, ↑/↓ move it by a sentence, Enter reads from it.
 // The first key starts at the current reading position. Other keys (Page Up/Down, Space) keep their usual meaning.

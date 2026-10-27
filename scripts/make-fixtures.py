@@ -159,6 +159,34 @@ def jpx_pdf(path):
 jpx_pdf(os.path.join(out, 'jpx.pdf'))
 
 # ---------------------------------------------------------------------------------------------------------------
+# dropcap.pdf (N4, docs/pdf-corpus.md): a chapter title, a subtitle and a paragraph opening with a large drop cap "A". The cap is
+# written FIRST in the file, before the title, as some layout tools do, so naive reading order is "A", title, "n ...".
+# Also an ellipsis between two words without spaces ("odjednom...polete").
+c = canvas.Canvas(os.path.join(out, 'dropcap.pdf'), pagesize=A5, invariant=1)
+c.setTitle('Fixture Drop Cap')
+body = ['n important question I love is: What have you experienced that',
+        'makes you believe what you do? And would I believe the same',
+        'if I experienced what you have? The answer is usually yes, and',
+        'it explains more disagreements than anything else I know of.',
+        'Ptice su odjednom...polete sa grane, i sve je utihnulo.']
+for page in range(2):
+    if page == 0:
+        c.setFont('Times-Roman', 40); c.drawString(40, H - 186, 'A')                       # the cap, written first
+        c.setFont('Times-Bold', 15); c.drawString(40, H - 70, 'ALL BEHAVIOR MAKES SENSE WITH')
+        c.drawString(40, H - 88, 'ENOUGH INFORMATION')
+        c.setFont('Times-BoldItalic', 11); c.drawString(40, H - 115, 'Most debates are people with different lives talking.')
+        y = H - 172
+        for k, ln in enumerate(body):
+            c.setFont('Times-Roman', 11); c.drawString(70 if k < 2 else 40, y, ln); y -= 14
+    else:
+        c.setFont('Times-Roman', 11); y = H - 70
+        for k in range(12):
+            c.drawString(40, y, 'The second page continues with plain text so the book has more than one page.'); y -= 14
+    c.showPage()
+c.save()
+print('wrote', os.path.abspath(os.path.join(out, 'dropcap.pdf')))
+
+# ---------------------------------------------------------------------------------------------------------------
 # Long books for performance (tests/e2e/perf.py) and for checking a phone (docs/platforms.md): 300 and 1000 pages,
 # ~380 words per page, running header and page number. In a subfolder, so the PDF corpus check does not import them.
 perf = os.path.join(out, 'perf')

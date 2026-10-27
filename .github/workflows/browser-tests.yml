@@ -28,7 +28,7 @@ jobs:
           - group: ui
             tests: a11y keyboard csp smoke states scroll-pause old-browser
           - group: data
-            tests: pdf-corpus offline fonts positions backup
+            tests: pdf-corpus dropcap offline fonts positions backup
           - group: integrity
             tests: integrity upgrade storage
     name: e2e (${{ matrix.group }})

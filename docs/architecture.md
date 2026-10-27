@@ -81,4 +81,6 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 Kompatibilnost sa pdf.js (canvas, text layer, fontovi iz PDF-a) i sa TWA omotačem **treba proveriti u fazi 4**. Ovo je cilj, ne potvrđena konfiguracija.
 
+**Stvarna konfiguracija od 2026-10-27:** `hosting/_headers` (Cloudflare Pages). Pod njom prolaze svi browser testovi (`tests/e2e/csp.py`). TWA omotač još nije proveren.
+
 Dopuna 2026-10-25 (pdf.js 6, ADR 0005): `script-src` mora sadržati i `'wasm-unsafe-eval'` za dekodere slika (JPEG 2000, JBIG2, ICC). To nije `unsafe-eval`.

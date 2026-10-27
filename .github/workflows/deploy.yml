@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# PRODUCTION deploy to Cloudflare Pages (docs/adr/0003, INF-01). Started by hand only ("Run workflow"), only from main.
+# - The Cloudflare token is an environment secret of "production" (main only) and is given to the Wrangler steps only.
+# - Wrangler is installed with exact versions from deploy/package-lock.json (integrity-checked, no install scripts).
+# - The live site is checked after the deploy (scripts/verify-deploy.mjs); a failed check fails the run.
+name: Deploy production (Cloudflare Pages)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.address.outputs.url }}
+    env:
+      PROJECT: read
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Install the deploy tool
+        working-directory: deploy
+        run: |
+          npm ci
+          npm audit --audit-level=high
+      - name: Create the Pages project on the first deploy
+        working-directory: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler pages project list --json > projects.json
+          if node -e 'const t = require("fs").readFileSync("projects.json", "utf8"); const l = JSON.parse(t.slice(t.indexOf("["))); process.exit(l.some(p => p["Project Name"] === process.env.PROJECT) ? 0 : 1)'; then
+            echo "Project $PROJECT exists."
+          else
+            npx wrangler pages project create "$PROJECT" --production-branch=main
+          fi
+      - name: Deploy
+        working-directory: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy ../dist --project-name="$PROJECT" --branch=main --commit-hash="$GITHUB_SHA" --commit-dirty=false
+      - name: Production address
+        id: address
+        working-directory: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler pages project list --json > projects.json
+          host=$(node -e 'const t = require("fs").readFileSync("projects.json", "utf8"); const p = JSON.parse(t.slice(t.indexOf("["))).find(p => p["Project Name"] === process.env.PROJECT); console.log(p["Project Domains"].split(", ").find(d => d.endsWith(".pages.dev")))')
+          echo "url=https://$host/" >> "$GITHUB_OUTPUT"
+          echo "Production address: https://$host/" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify the live site
+        env:
+          URL: ${{ steps.address.outputs.url }}
+        run: node scripts/verify-deploy.mjs "$URL" dist

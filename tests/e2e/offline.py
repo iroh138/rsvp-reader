@@ -11,7 +11,7 @@ with sync_playwright() as p:
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(url, wait_until="load")
-    pg.wait_for_function("navigator.serviceWorker && navigator.serviceWorker.controller !== undefined", timeout=10000)
+    pg.wait_for_function("() => navigator.serviceWorker && navigator.serviceWorker.controller !== undefined", timeout=10000)
     pg.evaluate("navigator.serviceWorker.ready")
     pg.wait_for_timeout(2000)
     out = {
@@ -31,7 +31,7 @@ with sync_playwright() as p:
     pdf = sys.argv[2] if len(sys.argv) > 2 else None
     if pdf:
         pg.set_input_files('#fileIn', pdf)
-        pg.wait_for_function("(document.querySelector('#libMsg').textContent || '').length > 0", timeout=60000)
+        pg.wait_for_function("() => (document.querySelector('#libMsg').textContent || '').length > 0", timeout=60000)
         out["offlineImport"] = pg.inner_text('#libMsg')
     out["errors"] = errs
     print(json.dumps(out, indent=1, ensure_ascii=False))

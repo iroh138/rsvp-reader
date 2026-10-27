@@ -44,14 +44,14 @@ def run_one(browser, path):
     pg.on('pageerror', lambda e: errors.append(str(e)[:200]))
     pg.goto(url + '?dev', wait_until='load'); pg.wait_for_timeout(500)
     pg.set_input_files('#fileIn', path)
-    pg.wait_for_function("(document.querySelector('#libMsg').textContent || '').length > 0", timeout=120000)
+    pg.wait_for_function("() => (document.querySelector('#libMsg').textContent || '').length > 0", timeout=120000)
     msg = re.sub(r'\d+(\.\d+)? s\.', 'N s.', pg.inner_text('#libMsg'))
     pg.wait_for_timeout(1500)
     rec = {'message': msg, 'stored': pg.evaluate(DUMP)}
     if msg.startswith('Added'):
         pg.locator('#results').evaluate("e => e.innerHTML = ''")
         pg.click('#checkBtn')
-        pg.wait_for_function("document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=120000)
+        pg.wait_for_function("() => document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=120000)
         pg.wait_for_timeout(4000)
         checks = [(r.get_attribute('class').split()[-1], r.locator('.txt').inner_text().split('\n')[0]) for r in pg.locator('#results .res').all()]
         rec['checks'] = [f'{k}: {t}' for k, t in checks if re.search(r'Every character|Tapping a word|Images|first image', t)]

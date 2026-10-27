@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# HTTP headers for Cloudflare Pages (SEC-04, docs/adr/0003). Copied into dist/ by scripts/build.mjs.
+# scripts/serve.mjs applies the same "/*" rules locally, so every browser test runs under this policy.
+# CSP: the app loads nothing from other origins. 'wasm-unsafe-eval' lets pdf.js compile its own
+# image decoders (vendor/pdfjs/wasm); it does not allow eval() or new Function().
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  X-Frame-Options: DENY
+  ! Access-Control-Allow-Origin
+
+# Updates must be noticed at once; everything else is revalidated by the service worker's own versioning.
+/sw.js
+  Cache-Control: no-cache
+
+# Every deployment also gets its own preview address (<hash>.<project>.pages.dev). Keep those out of search results.
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex

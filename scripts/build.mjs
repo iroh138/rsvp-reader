@@ -31,6 +31,10 @@ const hash = createHash('sha256');
 for (const f of shipped) { hash.update(f); hash.update('\0'); hash.update(await readFile(join(dist, f))); }
 const template = await readFile(join(root, 'src/sw.template.js'), 'utf8');
 hash.update(template);   // a change to the service worker itself also gives a new version
+// HTTP headers for the host (hosting/_headers). Not cached by the service worker, but cached responses keep the
+// headers they were fetched with, so a header change (e.g. the CSP) must also give a new version.
+const headers = await readFile(join(root, 'hosting/_headers'));
+hash.update(headers);
 const version = hash.digest('hex').slice(0, 12);
 
 for (const token of ['__VERSION__', '__FILES__']) {
@@ -40,5 +44,6 @@ for (const token of ['__VERSION__', '__FILES__']) {
 const sw = template.replace('__VERSION__', version).replace('__FILES__', JSON.stringify(['./', ...shipped]));
 if (/__[A-Z]+__/.test(sw)) throw new Error('dist/sw.js still contains a placeholder');
 await writeFile(join(dist, 'sw.js'), sw);
+await writeFile(join(dist, '_headers'), headers);
 await writeFile(join(dist, 'build.json'), JSON.stringify({ version, files: shipped.length, builtAt: new Date().toISOString() }, null, 2) + '\n');
 console.log(`dist/ built: ${shipped.length} files, service worker version ${version}`);

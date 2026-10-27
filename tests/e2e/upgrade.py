@@ -25,7 +25,7 @@ with sync_playwright() as p:
     pg.goto(url, wait_until='load')
     pg.evaluate('navigator.serviceWorker.ready')
     pg.set_input_files('#fileIn', pdf)
-    pg.wait_for_function("(document.querySelector('#libMsg').textContent||'').startsWith('Added')", timeout=60000)
+    pg.wait_for_function("() => (document.querySelector('#libMsg').textContent||'').startsWith('Added')", timeout=60000)
     pg.keyboard.press('Space'); pg.wait_for_timeout(1500); pg.keyboard.press('Space'); pg.wait_for_timeout(300)
     out['old_meta'] = pg.inner_text('#meta')
     out['old_books'] = pg.locator('#books .book .t').all_inner_texts()
@@ -57,7 +57,7 @@ with sync_playwright() as p:
     # The book was imported by the OLD build; the new build must still map taps to the stored words, etc.
     pg.goto(url + '?dev', wait_until='load'); pg.wait_for_timeout(2500)
     pg.click('#checkBtn')
-    pg.wait_for_function("document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=120000)
+    pg.wait_for_function("() => document.querySelectorAll('#results .res').length > 0 && !document.querySelector('#checkBtn').disabled", timeout=120000)
     pg.wait_for_timeout(5000)
     res = [(r.get_attribute('class').split()[-1], r.locator('.txt').inner_text().split('\n')[0]) for r in pg.locator('#results .res').all()]
     out['checks_after_upgrade'] = [f'{k}: {t[:90]}' for k, t in res if k != 'ok' or 'Tapping' in t or 'Every character' in t]

@@ -53,7 +53,7 @@ with sync_playwright() as p:
 
     ctx, pg = fresh()                                   # "Read from here" in the document view still starts reading
     pg.set_input_files('#fileIn', pdf)
-    pg.wait_for_function("(document.querySelector('#libMsg').textContent||'').startsWith('Added')", timeout=60000); pg.wait_for_timeout(2500)
+    pg.wait_for_function("() => (document.querySelector('#libMsg').textContent||'').startsWith('Added')", timeout=60000); pg.wait_for_timeout(2500)
     span = pg.locator('#pages .textLayer span').nth(30)
     span.scroll_into_view_if_needed(); span.click(); pg.wait_for_timeout(300)
     pg.click('#readHereBtn'); pg.wait_for_timeout(4500)

@@ -72,3 +72,14 @@ Zlonamerni PDF koji koristi CVE-2024-4367 namerno **nije** deo korpusa, jer bi t
 
 `PROCESSOR_VERSION` 5 → 6: već uvezene knjige se pri prvom otvaranju jednom ponovo obrade. N4 ne menja broj reči, pa pozicija ostaje ista. N5 dodaje po jednu reč za svako „reč...reč“ pre sačuvane pozicije. Pozicija je sačuvana kao redni broj reči, pa u takvoj knjizi pada za toliko reči ranije. To je obično 0–5 reči, a čitanje ionako pri nastavku vraća do početka rečenice.
 Golden: dodat je samo `dropcap.pdf`; svih 9 postojećih fajlova je nepromenjeno.
+
+## Provera na stvarnoj knjizi vlasnika (2026-10-28)
+
+Komercijalni PDF od 169 strana (knjiga nije u repou, jer je zaštićena autorskim pravom). Posle ispravki N4 i N5 ima 19 inicijala i svih 19 se čita na pravom mestu. Pronađena su još tri problema, ispravljena u ovom PR-u:
+
+- **N4b — inicijal koji je sam reč.** „I“ + „once heard…“ se čitalo „Ionce“. Pozicija ne pomaže, jer je razmak između slova i reda isti kao kod „A“ + „n“. Sada odlučuje sama knjiga: slovo se spaja ako se spojena reč („an“) u knjizi javlja bar onoliko puta koliko i drugi deo sam („n“). Inače se prikazuje kao „I once“, na pravom mestu. Pravilo ne zavisi od jezika.
+- **N6 — kontrolni znakovi.** Potpis ispod citata u fontu bez tekstualnog mapiranja davao je „reči“ od NUL znakova. Oni se sada pretvaraju u razmake iste dužine, pa se ne čitaju, a tap na reč i dalje pogađa pravo mesto.
+- **N7 — naslov sa većim prvim slovom.** „M AYBE YOU ALREADY HAVE ENOUGH“ i „M ONEY“ su sada „MAYBE“ i „MONEY“. Spaja se samo kada knjiga češće koristi spojenu reč nego drugi deo, pa „A MAN“ ostaje dve reči.
+
+Rezultat na toj knjizi: 19/19 inicijala tačno, 0 reči od kontrolnih znakova, naslovi celi. `PROCESSOR_VERSION` 6 → 7 (N6 menja sačuvan tekst).
+Napomena: na nekim stranama te kopije stoji „OceanofPDF.com“, oznaka sajta sa kog fajl potiče. Aplikacija je čita kao tekst jer se ne ponavlja kao zaglavlje.

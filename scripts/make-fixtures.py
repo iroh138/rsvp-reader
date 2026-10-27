@@ -179,9 +179,13 @@ for page in range(2):
         for k, ln in enumerate(body):
             c.setFont('Times-Roman', 11); c.drawString(70 if k < 2 else 40, y, ln); y -= 14
     else:
-        c.setFont('Times-Roman', 11); y = H - 70
-        for k in range(12):
-            c.drawString(40, y, 'The second page continues with plain text so the book has more than one page.'); y -= 14
+        # second chapter: a cap that is a word of its own ("I" + "once"), and a heading set as "M ONEY" (N7)
+        c.setFont('Times-Roman', 40); c.drawString(40, H - 186, 'I')
+        c.setFont('Times-Bold', 15); c.drawString(40, H - 70, 'M ONEY AND STATUS')
+        c.setFont('Times-Roman', 11); y = H - 172
+        for k, ln in enumerate(['once heard someone say that a nicer car is better money', 'spent, and once you drive it you know.',
+                                'Money once spent on status is money once spent on others.']):
+            c.drawString(55 if k < 2 else 40, y, ln); y -= 14
     c.showPage()
 c.save()
 print('wrote', os.path.abspath(os.path.join(out, 'dropcap.pdf')))

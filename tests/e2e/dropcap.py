@@ -1,5 +1,6 @@
 """Drop caps and ellipses in a real PDF (N4, docs/pdf-corpus.md): tests/fixtures/dropcap.pdf, where the large "A" is written before
-the chapter title. The reader must show the title, the subtitle, then "An important ..." (not "A", title, "n");
+the chapter title. The reader must show the title, the subtitle, then "An important ..." (not "A", title, "n"), and on
+page 2 "I once" (a cap that is a word of its own) and "MONEY" (a heading extracted as "M ONEY");
 tapping the big letter on the page must choose "An"; "odjednom...polete" must be two words.
 Usage: python3 tests/e2e/dropcap.py http://localhost:8080/"""
 import sys, json, os
@@ -21,6 +22,8 @@ with sync_playwright() as p:
     ok['title_first'] = w[:2] == ['ALL', 'BEHAVIOR']
     ok['cap_joined'] = 'An' in w and 'A' not in w and 'n' not in w and w[w.index('An') + 1] == 'important'
     ok['ellipsis_split'] = 'odjednom...' in w and 'polete' in w
+    ok['cap_as_own_word'] = 'I once' in w and 'Ionce' not in w        # N4: "I" + "once" is two words, in place
+    ok['split_capitals'] = 'MONEY' in w and 'M' not in w              # N7: heading "M ONEY" 
     # tap the big letter in the document view
     pg.click('#docBtn'); pg.wait_for_selector('.pg.ready .textLayer span', timeout=30000)
     pg.locator('.pg.ready .textLayer span', has_text='A').filter(has_text=__import__('re').compile(r'^A$')).first.click()

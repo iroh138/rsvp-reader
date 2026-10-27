@@ -109,19 +109,19 @@
  },
  "dropcap.pdf": {
   "checks": [
-   "ok: Every character of “Fixture Drop Cap” belongs to exactly one word, in order (2 pages, 251 words)",
+   "ok: Every character of “Fixture Drop Cap” belongs to exactly one word, in order (2 pages, 106 words)",
    "ok: Tapping a word on the page selects that word: 8/8 (limit 95%) across 2 pages",
    "info: Images: none found in this book, so reading never pauses for one."
   ],
   "checks_failed": [],
-  "message": "Added “Fixture Drop Cap”: 2 pages, 251 words, N s.",
+  "message": "Added “Fixture Drop Cap”: 2 pages, 106 words, N s.",
   "page_errors": [],
   "stored": {
    "books": [
     {
-     "clause": 3,
+     "clause": 4,
      "cleanup": {
-      "paras": 3,
+      "paras": 7,
       "removed": [],
       "skippedTokens": 0
      },
@@ -133,13 +133,13 @@
      "pageCount": 2,
      "pageText": [
       "53534ed3ae2cb51b",
-      "bf17a89558473228"
+      "c5c74e9cb37b02fd"
      ],
-     "paragraph": 3,
-     "sentence": 18,
+     "paragraph": 7,
+     "sentence": 8,
      "skipped": 0,
      "title": "Fixture Drop Cap",
-     "totalTokens": 251
+     "totalTokens": 106
     }
    ],
    "documents": 1,

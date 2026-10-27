@@ -58,6 +58,11 @@ export function cutRun(t) {
   while ((m = re1.exec(t))) cuts.push(m.index + m[0].length);
   const re2 = /\p{L}–(?=\p{L})/gu;
   while ((m = re2.exec(t))) cuts.push(m.index + m[0].length);
+  // "odjednom...polete", "wait…what": an ellipsis between letters ends the word (not inside a web address)
+  if (!/:\/\/|^www\./i.test(t)) {
+    const re4 = /\p{L}(?:\.{3,}|…)(?=\p{L})/gu;
+    while ((m = re4.exec(t))) cuts.push(m.index + m[0].length);
+  }
   cuts.sort((a, b) => a - b);
   const parts = [];
   let from = 0;
@@ -193,6 +198,20 @@ export class Book {
       this.flags[b] = F.SKIP;
       this.len[a] = Math.min(255, pivotOf(graphemes(merged)).n);
     }
+    // Drop caps: the letter joins the first word of its paragraph; the letter itself is not read again.
+    // redirect: tapping the big letter on the page chooses that word.
+    this.redirect = new Map();
+    pages.forEach((pg, p) => {
+      for (const [c, t] of pg.caps || []) {
+        const gc = this.first[p] + c, gt = this.first[p] + t;
+        if (gc >= this.first[p + 1] || gt >= this.first[p + 1]) continue;
+        const merged = this.rawText(gc).trim() + this.text(gt);
+        this.join.set(gt, merged);
+        this.len[gt] = Math.min(255, pivotOf(graphemes(merged)).n);
+        this.flags[gc] = F.SKIP;
+        this.redirect.set(gc, gt);
+      }
+    });
   }
   get images() {
     if (!this._images) this._images = (this.meta.images || []).map((im, n) => ({ n, p: im.p, bbox: im.bbox, g: this.first[im.p] + im.local })).filter(im => im.g >= 0).sort((a, b) => a.g - b.g || a.n - b.n);
@@ -226,6 +245,31 @@ export function extractLines(items) {
   }
   close();
   return { text, itemStarts, lines };
+}
+
+// Drop caps (N4, docs/pdf-corpus.md): a large first letter set beside the first lines of a paragraph. PDFs store it as a separate
+// piece of text, often far from its paragraph (e.g. before the chapter title), so it would be read on its own and in
+// the wrong place. Returns [[capToken, firstWordToken]] for one page; the Book reads them as one word ("A" + "n").
+// A cap is a line holding only one letter (optionally after an opening quote), at least 1.8x the body text size,
+// directly left of a body line whose baseline lies within the letter's height.
+export function findDropCaps(rec, lines) {
+  const body = lines.filter(l => rec.text.slice(l.s, l.e).trim().length > 3).map(l => l.h).sort((a, b) => a - b);
+  if (!body.length) return [];
+  const bh = body[body.length >> 1];
+  const out = [];
+  for (const cap of lines) {
+    const raw = rec.text.slice(cap.s, cap.e).trim();
+    if (!/^["“„«‘']?\p{L}$/u.test(raw) || cap.h < 1.8 * bh) continue;
+    const beside = lines.filter(l => l !== cap && l.h < 1.5 * bh && l.x0 >= cap.x1 - bh * 0.3 && l.x0 - cap.x1 <= 3 * bh
+      && l.y >= cap.y - bh * 0.5 && l.y <= cap.y + cap.h);
+    if (!beside.length) continue;
+    const first = beside.reduce((a, b) => (b.y > a.y ? b : a));          // the topmost line beside the letter
+    const c = lowerBound(rec.tokStart, cap.s), t = lowerBound(rec.tokStart, first.s);
+    if (c >= rec.tokStart.length || rec.tokStart[c] >= cap.e || t >= rec.tokStart.length || t === c) continue;
+    if (!/^\p{L}/u.test(rec.text.slice(rec.tokStart[t], rec.tokEnd[t]))) continue;
+    out.push([c, t]);
+  }
+  return out;
 }
 
 export const ROMAN = /^m{0,3}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$/;

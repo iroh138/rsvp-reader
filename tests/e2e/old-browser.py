@@ -12,7 +12,7 @@ with sync_playwright() as p:
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(url, wait_until='load'); pg.wait_for_timeout(400)
         pg.set_input_files('#fileIn', pdf)
-        pg.wait_for_function("(document.querySelector('#libMsg').textContent || '').length > 0", timeout=60000)
+        pg.wait_for_function("() => (document.querySelector('#libMsg').textContent || '').length > 0", timeout=60000)
         out[name] = {'message': pg.inner_text('#libMsg'), 'books': pg.locator('#books .book').count(), 'errors': errors}
         ctx.close()
     b.close()

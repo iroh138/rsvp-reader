@@ -1,0 +1,12 @@
+{
+  "name": "rsvp-reader-deploy",
+  "private": true,
+  "description": "Deploy tool only (Wrangler for Cloudflare Pages). Not part of the app; never shipped to users.",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  },
+  "overrides": {
+    "undici": "7.30.1"
+  }
+}

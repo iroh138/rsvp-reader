@@ -5,3 +5,4 @@ dist/
 *.jks
 *.p12
 *.pem
+deploy/projects.json

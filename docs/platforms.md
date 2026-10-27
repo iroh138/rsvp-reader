@@ -40,6 +40,22 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 4. Tapni reč na stranici, pa „Read from here“.
 5. Čitaj do slike u `jpx.pdf`: slika mora biti vidljiva.
 6. Instaliraj aplikaciju, isključi mrežu, otvori je ponovo i uvezi `book.pdf`.
+7. **Velike knjige (performanse, PLAN §3):** uvezi `tests/fixtures/perf/long-300.pdf`, pa `long-1000.pdf`. Upiši vreme koje biblioteka prikaže ispod naslova („imported in … s“). Cilj je ≤30 s za 300 strana, a 1000 strana mora da se uveze bez pada taba. Zatim zatvori aplikaciju, otvori je ponovo i proveri da se knjiga od 1000 strana otvori za oko 2 s.
+
+## Performanse (PLAN §3) — merenje 2026-10-27
+
+`tests/e2e/perf.py`, headless Chromium sa procesorom usporenim 4× kao zamena za srednji telefon. **Ovo je približna vrednost, a ne merenje na uređaju.** Merenje na uređaju je korak 7 iznad.
+
+| Merenje | Cilj | Rezultat |
+|---|---|---|
+| Uvoz 300 strana (115 hiljada reči) | ≤30 s | 15,2–15,6 s |
+| Uvoz 1000 strana (383 hiljade reči) | bez pada | 63 s; najveća memorija glavne niti 50–66 MB |
+| Pokretanje bez mreže, otvorena knjiga od 1000 strana | ≤2 s | 1,15 s |
+| Prva strana u pregledu dokumenta | ≤2 s | 0,5–0,6 s |
+| Čitanje 20 s | bez seckanja | najduži frejm 83 ms (usporeno 4×) |
+| Pozicija se snima tokom čitanja | najmanje na 5 s | na 5,1–5,2 s |
+
+Vreme uvoza raste linearno (≈40 ms po strani u svim delima knjige), pa nema skrivenog kvadratnog troška. Memorija worker-a (pdf.js) se ne meri, a ona je najveći rizik za pad taba na telefonu sa malo RAM-a.
 
 ## Otvoreno: povremeni pad provere slike na telefonu (2026-10-25)
 

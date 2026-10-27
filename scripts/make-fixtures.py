@@ -157,3 +157,31 @@ def jpx_pdf(path):
     out_b += b'trailer\n<< /Size %d /Root 1 0 R /Info << /Title (Fixture JPX) >> >>\nstartxref\n%d\n%%%%EOF\n' % (len(objs) + 1, xref)
     open(path, 'wb').write(bytes(out_b))
 jpx_pdf(os.path.join(out, 'jpx.pdf'))
+
+# ---------------------------------------------------------------------------------------------------------------
+# Long books for performance (tests/e2e/perf.py) and for checking a phone (docs/platforms.md): 300 and 1000 pages,
+# ~380 words per page, running header and page number. In a subfolder, so the PDF corpus check does not import them.
+perf = os.path.join(out, 'perf')
+os.makedirs(perf, exist_ok=True)
+VOCAB = ('the of and to in a is that for it as was with be by on not he this are or his from at which but have an they '
+         'you were her she there their one all we can has more if will would been when who so no out what said up its about '
+         'into them than some could time these two may first then do any like my now over such our man me even most made '
+         'after also did many before must through back years where much your way well down should because each just those '
+         'people how too little state good very make world still own see men work long get here between both life being '
+         'under never day same another know while last might us great old year off come since against go came right used').split()
+for n in (300, 1000):
+    rnd = random.Random(n)
+    path = os.path.join(perf, f'long-{n}.pdf')
+    c = canvas.Canvas(path, pagesize=A5, invariant=1)
+    c.setTitle(f'Long Book {n}')
+    for p in range(n):
+        c.setFont('Helvetica', 8); c.drawString(40, H - 20, 'A LONG TEST BOOK'); c.drawCentredString(W / 2, 20, str(p + 1))
+        c.setFont('Times-Roman', 10)
+        y = H - 45
+        for k in range(36):
+            ws = [rnd.choice(VOCAB) for _ in range(rnd.randint(9, 12))]
+            if rnd.random() < 0.25: ws[-1] += '.'
+            c.drawString(52 if k % 9 == 0 else 40, y, ' '.join(ws)); y -= 14.5
+        c.showPage()
+    c.save()
+    print('wrote', os.path.abspath(path))

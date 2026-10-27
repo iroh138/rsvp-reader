@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Browser tests (QA-01, QA-03, UX-02, ARH-01, DEX-01, SEC-04): tests/e2e/*.py in headless Chromium, under the
+# production headers. Same rules as CI: actions pinned to commit SHAs, read-only token, no secrets, no fork triggers.
+# Python packages are installed with hashes (tests/e2e/requirements.txt); Chromium comes from Playwright's own
+# download for that exact Playwright version.
+name: Browser tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: ui
+            tests: a11y keyboard csp smoke states scroll-pause old-browser
+          - group: data
+            tests: pdf-corpus offline fonts positions backup
+          - group: integrity
+            tests: integrity upgrade storage
+    name: e2e (${{ matrix.group }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0          # upgrade.py builds the version before this change
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - name: Install test packages (exact versions, hash-checked) and Chromium
+        timeout-minutes: 12
+        # The browser download and the system packages it needs occasionally stall on the runner: give each
+        # attempt 5 minutes and try up to 3 times, instead of letting one stall use up the whole job.
+        run: |
+          python -m pip install --require-hashes --no-deps -r tests/e2e/requirements.txt
+          for i in 1 2 3; do timeout 300 python -m playwright install --with-deps chromium && break; echo "attempt $i failed"; [ $i = 3 ] && exit 1; done
+      - name: Run ${{ matrix.tests }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          TESTS: ${{ matrix.tests }}
+        run: scripts/ci-browser-tests.sh $TESTS
+
+  # Timing budgets depend on the runner's CPU, so a failure here is reported but does not block a merge.
+  perf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - name: Install test packages (exact versions, hash-checked) and Chromium
+        timeout-minutes: 12
+        # The browser download and the system packages it needs occasionally stall on the runner: give each
+        # attempt 5 minutes and try up to 3 times, instead of letting one stall use up the whole job.
+        run: |
+          python -m pip install --require-hashes --no-deps -r tests/e2e/requirements.txt
+          for i in 1 2 3; do timeout 300 python -m playwright install --with-deps chromium && break; echo "attempt $i failed"; [ $i = 3 ] && exit 1; done
+      - run: scripts/ci-browser-tests.sh perf

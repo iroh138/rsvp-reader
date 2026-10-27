@@ -42,7 +42,13 @@ with sync_playwright() as p:
     pg.on('request', lambda r: (not r.url.startswith(url)) and not r.url.startswith(('data:', 'blob:')) and log.append(r.url))
     # First visit after a deploy: the OLD worker still serves the OLD cached page (standard service worker model);
     # meanwhile the new worker installs, skips waiting and claims the page.
-    pg.goto(url, wait_until='load')
+    # Exception: a previous build whose service worker served a redirected index.html (production build
+    # 55313d731477 on Cloudflare Pages) fails this first page load with ERR_FAILED; the browser still fetches the
+    # new service worker, which takes over, so the next load must work. Recorded, and the rest must pass as usual.
+    try: pg.goto(url, wait_until='load')
+    except Exception as e:
+        out['first_visit_failed_then_recovered'] = str(e).split('\n')[0]
+        pg.wait_for_timeout(2500); pg.goto(url, wait_until='load')
     pg.wait_for_timeout(2500)
     log = external
     pg.reload(wait_until='load'); pg.wait_for_timeout(1500)

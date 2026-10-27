@@ -16,7 +16,7 @@
 
 ## Odluka 2026-10-27
 
-- **Hosting:** Cloudflare Pages, projekat `read`. Bez sopstvenog domena za sada, pa je adresa `https://read.pages.dev/`. Ako je ime `read` zauzeto, Cloudflare dodaje nasumičan sufiks (npr. `read-3xk.pages.dev`). Tačnu adresu ispisuje deploy workflow.
+- **Hosting:** Cloudflare Pages, projekat `read`. Bez sopstvenog domena za sada. Ime `read` je bilo zauzeto, pa je produkciona adresa **`https://read-8zp.pages.dev/`** (prvo objavljivanje 2026-10-27).
 - **Origin:** `read.pages.dev` je sopstveni origin, pa je A12 (deljeni origin na `github.io`) rešen.
 - **Deploy:** samo iz CI-ja (`.github/workflows/deploy.yml`), ručno pokretanje iz `main`. Token je tajna GitHub okruženja `production`. Posle svakog deploy-a `scripts/verify-deploy.mjs` proverava živi sajt.
 - **Headeri:** `hosting/_headers` (CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, X-Frame-Options). Lokalni server ih primenjuje, pa svi browser testovi rade pod produkcionim CSP-om (`tests/e2e/csp.py`: 0 kršenja politike).

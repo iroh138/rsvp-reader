@@ -27,7 +27,7 @@ Na starijem pregledaču aplikacija se otvara, a čitanje već uvezenih knjiga ra
 | iPhone, iOS 18, Safari | vlasnik / tester | Nije testirano |
 | Windows ili macOS, Chrome / Edge / Firefox | vlasnik | Nije testirano na verziji sa pdf.js 6 |
 
-**Produkcija:** Cloudflare Pages, projekat `read` (adresa `https://read.pages.dev/` ili sa sufiksom, vidi ADR 0003). Pokreće se ručno: Actions → „Deploy production (Cloudflare Pages)“. Sopstveni origin, pa incognito nije potreban.
+**Produkcija:** https://read-8zp.pages.dev/ (Cloudflare Pages, projekat `read`, ADR 0003). Pokreće se ručno: Actions → „Deploy production (Cloudflare Pages)“. Sopstveni origin, pa incognito nije potreban.
 
 **Test build za uređaje:** https://iroh138.github.io/rsvp-reader/ (workflow „Pages test deploy“, pokreće se ručno iz `main`). Ovo nije produkcioni hosting: deli origin sa ostalim Pages sajtovima vlasnika (ADR 0003). Koristi samo testne PDF-ove, koje preuzimaš sa GitHub-a: `tests/fixtures/` → fajl → *Download raw file*.
 

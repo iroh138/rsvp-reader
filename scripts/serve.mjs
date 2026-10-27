@@ -3,6 +3,7 @@
 // Binds to localhost only. Not for production.
 // If the folder has a _headers file (hosting/_headers, Cloudflare Pages format), its "/*" rules and exact-path
 // rules are applied, so browser tests run under the production Content-Security-Policy.
+// It also redirects index.html to the directory URL the way Cloudflare Pages does.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
@@ -36,6 +37,9 @@ if (import.meta.url === `file://${process.argv[1]}`) createServer(async (req, re
   const file = join(root, path || 'index.html');
   if (file !== root && !file.startsWith(root + sep)) { res.writeHead(403).end(); return; }
   if (path === '_headers') { res.writeHead(404).end('Not found'); return; }   // Pages does not serve it either
+  // Like Cloudflare Pages: /index.html (and /dir/index.html) answers 308 to the directory URL. A service worker that
+  // caches 'index.html' then holds a redirected response, which Chrome refuses for page loads (ERR_FAILED).
+  if (/(^|\/)index\.html$/.test(path)) { res.writeHead(308, { Location: '/' + path.replace(/index\.html$/, '') + new URL(req.url, 'http://x').search }).end(); return; }
   try {
     const body = await readFile(file.endsWith('/') ? join(file, 'index.html') : file);
     // Same headers as production (browsers ignore Strict-Transport-Security on plain http).

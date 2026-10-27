@@ -168,3 +168,18 @@ test('N1: short page-number lines ("Page 12", "— 12 —", "12 The Book Title")
     for (const [i, words] of skippedWords(pdata).entries()) assert.ok(words.some(w => w.replace(/[^0-9]/g, '') === String(i + 1)), `${make(i)} on page ${i + 1}`);
   }
 });
+
+test('QA-03 keyboard pick: words and sentences, skipped words are never chosen, ends are clamped', async () => {
+  const { stepPick } = await import('../src/core.js');
+  const pages = [buildPage('First one here. Second sentence now. Third.', true)];
+  const b = new Book({ id: 'k', title: 't' }, pages);
+  b.flags[1] |= F.SKIP;                                  // pretend "one" is a running header
+  const word = i => b.text(i);
+  assert.equal(word(stepPick(b, 0, 1, 'word')), 'here.');   // skips "one"
+  assert.equal(word(stepPick(b, 2, -1, 'word')), 'First');
+  assert.equal(stepPick(b, 0, -1, 'word'), 0);              // clamped at the start
+  assert.equal(stepPick(b, b.length - 1, 1, 'word'), b.length - 1);
+  assert.equal(word(stepPick(b, 0, 1, 'sentence')), 'Second');
+  assert.equal(word(stepPick(b, 4, -1, 'sentence')), 'Second');   // inside a sentence: back to its start
+  assert.equal(word(stepPick(b, 3, -1, 'sentence')), 'First');
+});

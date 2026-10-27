@@ -66,9 +66,9 @@
       <label class="pagejump">Page <input id="pageIn" type="number" inputmode="numeric" min="1" value="1" aria-label="Page number"> / <span id="pageTotal">1</span></label>
       <button id="toPosBtn" class="btn small" type="button">Reading position</button>
     </div>
-    <div id="docScroll" class="doc-scroll"><div id="pages" class="pages"></div></div>
+    <div id="docScroll" class="doc-scroll" tabindex="0" role="region" aria-label="Document pages"><div id="pages" class="pages"></div></div>
     <div class="doc-bar">
-      <span id="pickLabel" class="pick-label">Tap a word on the page to choose where reading starts.</span>
+      <span id="pickLabel" class="pick-label" aria-live="polite">Tap a word on the page to choose where reading starts. With a keyboard: arrow keys, then Enter.</span>
       <button id="readHereBtn" class="btn primary" type="button" disabled>Read from here</button>
     </div>
   </section>

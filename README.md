@@ -6,6 +6,7 @@ Read PDF books one word at a time (rapid serial visual presentation), offline, o
 - Choose where to start by tapping a word on the original page.
 - Natural pauses at clauses, sentence ends and paragraphs; images pause reading and are shown in place.
 - Installable as a web app (PWA) and works without a network after the first visit.
+- Back up the whole library (the PDFs, reading positions and settings) to one ZIP file and restore it on another device or browser.
 
 ## Development
 
@@ -30,6 +31,7 @@ Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve
 - `python3 tests/e2e/upgrade.py <old dist> dist tests/fixtures/book.pdf`: updating from a previous build keeps the library
 - `python3 tests/e2e/old-browser.py http://localhost:8080/`: a browser too old for pdf.js 6 gets a clear message
 - `python3 tests/e2e/scroll-pause.py http://localhost:8080/`: reading stops when the reader is scrolled off screen (and only then)
+- `python3 tests/e2e/backup.py http://localhost:8080/`: back up on one device, restore on another (same books, text, positions and settings; damaged files refused)
 - `python3 tests/e2e/csp.py http://localhost:8080/`: the app works under the production headers with zero Content-Security-Policy violations
 - with the repository root served (`node scripts/serve.mjs . 8080`): `python3 tests/e2e/storage.py http://localhost:8080/`: database migrations, rollback, other open tabs
 

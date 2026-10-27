@@ -9,6 +9,7 @@ import {
 } from './core.js';
 import { sanitizeSettings, parsePositionsExport } from './settings.js';
 import { openDatabase } from './storage.js';
+import { zipParts, crc32Update, libraryManifest, readEnd, readCentral, checkLocal, parseLibraryManifest, BACKUP } from './backup.js';
 
 // Developer panels are shown only with ?dev in the address.
 if (new URLSearchParams(location.search).has('dev')) document.documentElement.classList.add('dev');
@@ -535,12 +536,14 @@ async function reprocessBook(doc) {
 }
 
 let job = null;
-async function importPdf(file) {
-  if (job) { showMsg('err', 'Wait for the current import to finish, or cancel it.'); return; }
-  if (!dbOk) { showMsg('err', 'Local storage is not available in this browser window, so PDFs cannot be saved.'); return; }
-  showMsg('', '');
-  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { showMsg('err', `“${file.name}” is not a PDF. Only PDF files are supported.`); return; }
-  if (file.size > 200 * MB) { showMsg('err', `This file is ${(file.size / MB).toFixed(0)} MB. The limit is 200 MB.`); return; }
+// batch (restoring a backup): no messages and no opening of the book; returns { status, id, title, message, quota, cancelled }.
+async function importPdf(file, { batch = false } = {}) {
+  const fail = (message) => { if (!batch) showMsg('err', message); return { status: 'error', message }; };
+  if (job) return fail('Wait for the current import to finish, or cancel it.');
+  if (!dbOk) return fail('Local storage is not available in this browser window, so PDFs cannot be saved.');
+  if (!batch) showMsg('', '');
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') return fail(`“${file.name}” is not a PDF. Only PDF files are supported.`);
+  if (file.size > 200 * MB) return fail(`This file is ${(file.size / MB).toFixed(0)} MB. The limit is 200 MB.`);
 
   const me = job = { cancelled: false, t0: performance.now() };
   const box = $('importBox'); box.hidden = false;
@@ -555,7 +558,7 @@ async function importPdf(file) {
     if (!String.fromCharCode.apply(null, head).includes('%PDF-')) throw userError(`“${file.name}” is not a valid PDF file.`);
     id = (await sha256Hex(buf)) || `${file.name}|${file.size}|${file.lastModified}`;
     const existing = await idbGet('documents', id);
-    if (existing) { finish(); showMsg('', `“${existing.title}” is already in your library. Opened it.`); openBook(id, true); return; }
+    if (existing) { finish(); if (batch) return { status: 'exists', id, title: existing.title }; showMsg('', `“${existing.title}” is already in your library. Opened it.`); openBook(id, true); return; }
 
     $('importMeta').textContent = 'Loading the PDF engine…';
     await ensurePdfjs();
@@ -592,20 +595,25 @@ async function importPdf(file) {
     await txDone(t);
     try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
     finish();
+    if (batch) return { status: 'added', id, title };
     showMsg('ok', `Added “${title}”: ${fmtN(total)} pages, ${fmtN(tokens)} words, ${(doc.importMs / 1000).toFixed(1)} s.` + (failed.length ? ` ${failed.length} page(s) could not be read.` : ''));
     await refreshLibrary();
     openBook(id, true);
   } catch (e) {
     await rollback();
     finish();
-    if (e && e.cancelled) showMsg('', 'Import cancelled. Nothing was saved.');
-    else if (e && e.user) showMsg('err', e.message);
-    else if (e && (e.name === 'QuotaExceededError' || /quota/i.test(e.message || ''))) {
+    const quota = !!(e && (e.name === 'QuotaExceededError' || /quota/i.test(e.message || '')));
+    let message;
+    if (e && e.cancelled) message = 'Import cancelled. Nothing was saved.';
+    else if (e && e.user) message = e.message;
+    else if (quota) {
       let extra = ''; try { const est = await navigator.storage.estimate(); extra = ` This page can use about ${(est.quota / MB).toFixed(0)} MB and already uses ${(est.usage / MB).toFixed(0)} MB.`; } catch (x) {}
-      showMsg('err', 'Not enough storage space for this book. Delete a book and try again.' + extra);
+      message = 'Not enough storage space for this book. Delete a book and try again.' + extra;
     }
-    else if (e && /Could not load/.test(e.message || '')) showMsg('err', 'The PDF engine could not be downloaded. Check your connection and try again.');
-    else showMsg('err', 'Import failed: ' + ((e && e.message) || e));
+    else if (e && /Could not load/.test(e.message || '')) message = 'The PDF engine could not be downloaded. Check your connection and try again.';
+    else message = 'Import failed: ' + ((e && e.message) || e);
+    if (batch) return { status: 'error', message, quota, cancelled: !!(e && e.cancelled) };
+    showMsg(e && e.cancelled ? '' : 'err', message);
   } finally {
     if (pdf) { try { pdf.destroy(); } catch (e) {} }
   }
@@ -1040,6 +1048,105 @@ $('posApply').onclick = async () => {
     await refreshLibrary();
     if (book && book.id) openBook(book.id, false); else updateUI();
   } catch (e) { $('posMsg').textContent = e.message || String(e); }
+};
+
+/* ===== Library backup (DEX-01): every PDF + positions + settings in one ZIP file ===== */
+// The original PDFs are kept, so a restore re-imports them through importPdf: nothing processed comes from the file.
+const bytesOf = async (blob) => new Uint8Array(await blob.arrayBuffer());
+async function backupLibrary() {
+  const docs = (await idbAll('documents')).sort((a, b) => a.createdAt - b.createdAt);
+  if (!docs.length) throw userError('The library is empty. There is nothing to back up.');
+  const entries = [], books = [];
+  for (const [i, d] of docs.entries()) {
+    showMsg('', `Preparing backup: book ${fmtN(i + 1)} / ${fmtN(docs.length)}…`);
+    const f = await idbGet('files', d.id);
+    if (!f || !f.blob) continue;
+    // CRC in 8 MB steps, so a large book is never held twice in memory
+    let crc = 0;
+    for (let o = 0; o < f.blob.size; o += 8 * MB) crc = crc32Update(crc, await bytesOf(f.blob.slice(o, o + 8 * MB)));
+    books.push(d);
+    entries.push({ name: `books/${books.length}.pdf`, size: f.blob.size, crc, data: f.blob });
+  }
+  const pos = JSON.parse(await exportPositions());
+  const manifest = new TextEncoder().encode(libraryManifest({ books, positions: pos.positions, settings: pos.settings }));
+  entries.unshift({ name: BACKUP.manifest, size: manifest.length, crc: crc32Update(0, manifest), data: manifest });
+  const blob = new Blob(zipParts(entries), { type: 'application/zip' });
+  const name = `rsvp-library-${new Date().toISOString().slice(0, 10)}.zip`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  return { books: books.length, bytes: blob.size, name };
+}
+$('backupBtn').onclick = async () => {
+  if (job) { showMsg('err', 'Wait for the current import to finish.'); return; }
+  $('backupBtn').disabled = true;
+  try {
+    const r = await backupLibrary();
+    showMsg('ok', `Saved “${r.name}”: ${fmtN(r.books)} book${r.books === 1 ? '' : 's'}, ${(r.bytes / MB).toFixed(1)} MB, with reading positions and settings. Keep it somewhere safe; it contains your books.`);
+  } catch (e) { showMsg('err', e.user ? e.message : 'Backup failed: ' + ((e && e.message) || e)); }
+  finally { $('backupBtn').disabled = false; }
+};
+
+async function readBackup(file) {
+  if (file.size < 22) throw userError('This file is not a library backup from this app, or it is damaged.');
+  const end = readEnd(await bytesOf(file.slice(file.size - 22)), file.size);
+  const entries = readCentral(await bytesOf(file.slice(end.cdOffset, end.cdOffset + end.cdSize)), end);
+  for (const e of entries) checkLocal(await bytesOf(file.slice(e.offset, e.dataOffset)), e);
+  const byName = new Map(entries.map(e => [e.name, e]));
+  const m = byName.get(BACKUP.manifest);
+  const mBytes = await bytesOf(file.slice(m.dataOffset, m.dataOffset + m.size));
+  if (crc32Update(0, mBytes) !== m.crc) throw userError('This file is not a library backup from this app, or it is damaged.');
+  let text;
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(mBytes); } catch { throw userError('This file is not a library backup from this app, or it is damaged.'); }
+  const manifest = parseLibraryManifest(text, entries.map(e => e.name));
+  return { manifest, byName };
+}
+async function restoreLibrary(file) {
+  const { manifest, byName } = await readBackup(file);
+  const n = { added: 0, exists: 0, failed: [], changed: 0 };
+  let stopped = null;
+  for (const [i, b] of manifest.books.entries()) {
+    const e = byName.get(b.file);
+    const name = (b.fileName && /\.pdf$/i.test(b.fileName) ? b.fileName : (b.title || `book-${i + 1}`) + '.pdf');
+    // a lazy slice of the backup: the PDF is read once, by importPdf
+    const pdf = new File([file.slice(e.dataOffset, e.dataOffset + e.size)], name, { type: 'application/pdf' });
+    showMsg('', `Restoring book ${fmtN(i + 1)} / ${fmtN(manifest.books.length)}: ${b.title || name}`);
+    const r = await importPdf(pdf, { batch: true });
+    if (r.status === 'added') { n.added++; if (r.id !== b.id) n.changed++; }
+    else if (r.status === 'exists') n.exists++;
+    else if (r.cancelled || r.quota) { stopped = r.message; break; }
+    else n.failed.push(`${b.title || name}: ${r.message}`);
+  }
+  // positions and settings: same rules as pasted positions (a newer position on this device is kept)
+  const pos = await importPositions(JSON.stringify({ app: 'rsvp-reader', v: 1, positions: manifest.positions, settings: manifest.settings }));
+  return { ...n, total: manifest.books.length, skipped: manifest.skipped, stopped, positions: pos.applied };
+}
+$('restoreBtn').onclick = () => { if (job) { showMsg('err', 'Wait for the current import to finish.'); return; } $('restoreIn').click(); };
+$('restoreIn').onchange = async (ev) => {
+  const f = ev.target.files[0]; ev.target.value = '';
+  if (!f) return;
+  if (!dbOk) { showMsg('err', 'Local storage is not available in this browser window, so books cannot be restored.'); return; }
+  $('restoreBtn').disabled = $('backupBtn').disabled = true;
+  try {
+    const r = await restoreLibrary(f);
+    const parts = [`Restored ${fmtN(r.added)} of ${fmtN(r.total)} book${r.total === 1 ? '' : 's'}`];
+    if (r.exists) parts.push(`${fmtN(r.exists)} already in the library`);
+    if (r.positions) parts.push(`${fmtN(r.positions)} reading position${r.positions === 1 ? '' : 's'} applied`);
+    let text = parts.join(', ') + '.';
+    if (r.changed) text += ` ${r.changed} PDF file(s) differ from when the backup was made; their reading positions could not be matched.`;
+    if (r.failed.length) text += ` Not restored: ${r.failed.join('; ')}.`;
+    if (r.skipped) text += ` ${r.skipped} invalid entr${r.skipped === 1 ? 'y was' : 'ies were'} ignored.`;
+    if (r.stopped) text += ` Stopped: ${r.stopped}`;
+    showMsg(r.failed.length || r.stopped ? 'err' : 'ok', text);
+    const s = validSettings();
+    if (s.wpm) player.wpm = s.wpm; if (s.sent) setSentenceFactor(s.sent);
+    $('sentPause').value = FACTOR.sent; $('sentOut').textContent = FACTOR.sent + '×';
+    $('skipRun').checked = s.skipRunning !== false; $('imgOn').checked = s.showImages !== false;
+    await refreshLibrary();
+    if (book && book.id) openBook(book.id, false); else updateUI();
+  } catch (e) { showMsg('err', e.user ? e.message : 'Restore failed: ' + ((e && e.message) || e)); }
+  finally { $('restoreBtn').disabled = $('backupBtn').disabled = false; }
 };
 
 /* ===== Install (hosted build only) ===== */

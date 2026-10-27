@@ -22,7 +22,7 @@ npm run serve     # serve dist/ on http://localhost:8080
 
 Open the app with `?dev` to show the in-app acceptance checks and the paste-text panel.
 
-Browser tests (optional, Python + Playwright). Serve `dist/` with `npm run serve`, then:
+Browser tests (Python + Playwright) run in CI on every pull request (`.github/workflows/browser-tests.yml`). Locally: `pip install --require-hashes --no-deps -r tests/e2e/requirements.txt`, `python -m playwright install chromium`, then `scripts/ci-browser-tests.sh smoke csp …` (builds, serves and runs, like CI), or serve `dist/` with `npm run serve` and run one test:
 
 - `python3 tests/e2e/smoke.py "http://localhost:8080/index.html?dev" tests/fixtures/book.pdf`: in-app checks and PDF import
 - `python3 tests/e2e/pdf-corpus.py http://localhost:8080/`: every PDF in `tests/fixtures/` against `tests/fixtures/golden.json` (`--write` re-records it; see `docs/pdf-corpus.md`)

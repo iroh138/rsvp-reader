@@ -17,3 +17,7 @@ updates:
     directory: /tests/a11y
     schedule:
       interval: weekly
+  - package-ecosystem: pip
+    directory: /tests/e2e
+    schedule:
+      interval: weekly

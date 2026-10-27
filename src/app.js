@@ -236,7 +236,7 @@ function updateUI() {
   $('playBtn').textContent = imageMode ? 'Continue' : finished ? 'Restart' : (i > 0 ? 'Resume' : 'Play');
   $('titleLabel').textContent = book ? book.title : '';
   $('fill').style.width = n ? ((i + 1) / n * 100).toFixed(2) + '%' : '0';
-  let meta = 'Nothing to read yet. Add a PDF or paste text below.';
+  let meta = document.documentElement.classList.contains('dev') ? 'Nothing to read yet. Add a PDF or paste text below.' : 'Nothing to read yet. Add a PDF to start.';
   if (n) {
     const pages = book.pages.length;
     const where = pages > 1 ? `p. ${book.pageOf(i) + 1} / ${pages}` : `word ${fmtN(i + 1)} / ${fmtN(n)}`;
@@ -316,7 +316,8 @@ function setBook(b, idx) {
 }
 
 function loadPastedText(text, idx) {
-  const b = new Book({ title: 'Pasted text' }, [buildPage(text.replace(/\r\n?/g, '\n'), true)]);
+  // With no book yet, the reader shows the built-in sample (the empty state invites a first try); say what it is.
+  const b = new Book({ title: text === SAMPLE ? 'Sample text' : 'Pasted text' }, [buildPage(text.replace(/\r\n?/g, '\n'), true)]);
   setBook(b, idx);
   $('srcNote').textContent = b.length ? `${fmtN(b.length)} words` : 'No words found in this text.';
   settings(false, { current: { kind: 'text' }, text, textIdx: player.idx });
@@ -459,19 +460,22 @@ async function storageNote() {
 async function openBook(id, scroll) {
   try {
     pause();
+    // loading state: a large book takes a moment to read from storage
+    const row = libRows.get(id);
+    if (!book || book.id !== id) $('meta').textContent = `Opening ${row ? '“' + row.doc.title + '”' : 'the book'}…`;
     const [doc, pages, prog] = await Promise.all([idbGet('documents', id), idbAll('pages', pageRange(id)), idbGet('progress', id)]);
-    if (!doc) { showMsg('err', 'That book is no longer in the library.'); refreshLibrary(); return; }
+    if (!doc) { showMsg('err', 'That book is no longer in the library.'); updateUI(); refreshLibrary(); return; }
     if ((doc.processorVersion || 1) < PROCESSOR_VERSION) {
-      try { await reprocessBook(doc); } catch (e) { showMsg('err', 'Could not update this book: ' + (e.message || e)); return; }
+      try { await reprocessBook(doc); } catch (e) { showMsg('err', 'Could not update this book: ' + (e.message || e)); updateUI(); return; }
       refreshLibrary();
       return openBook(id, scroll);
     }
-    if (pages.length !== doc.pageCount) { showMsg('err', `This book is incomplete (${pages.length} of ${doc.pageCount} pages stored). Delete it and add the PDF again.`); return; }
+    if (pages.length !== doc.pageCount) { showMsg('err', `This book is incomplete (${pages.length} of ${doc.pageCount} pages stored). Delete it and add the PDF again.`); updateUI(); return; }
     pages.sort((a, b) => a.pageIndex - b.pageIndex);
     setBook(new Book({ id, title: doc.title, pageSizes: doc.pageSizes, images: doc.images || [] }, pages, { skipRunning: skipRunningSetting() }), prog ? prog.tokenIndex : 0);
     settings(false, { current: { kind: 'doc', id } });
     if (scroll) reader.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  } catch (e) { showMsg('err', 'Could not open the book: ' + (e.message || e)); }
+  } catch (e) { showMsg('err', 'Could not open the book: ' + (e.message || e)); updateUI(); }
 }
 
 
@@ -727,6 +731,8 @@ function renderPage(st) {
     const pdf = await ensureDocPdf();
     const page = await pdf.getPage(st.p + 1);
     if (seq !== st.seq) return;
+    st.el.querySelector('.ph').textContent = `Page ${st.p + 1}`;
+    if (seq !== st.seq) return;
     const s = docv.cssW / page.getViewport({ scale: 1 }).width;
     const vp = page.getViewport({ scale: s });
     let os = window.devicePixelRatio || 1;
@@ -755,7 +761,11 @@ function renderPage(st) {
     st.el.classList.add('ready');
     page.cleanup();
     drawHighlights(st);
-  })().catch(e => { if (st.seq === seq) st.state = 'none'; if (e && e.message !== 'stale') console.warn('Page render failed', st.p + 1, e); });
+  })().catch(e => {
+    // A page that fails says so instead of staying a blank placeholder; it is tried again when it scrolls back in.
+    if (st.seq === seq) { st.state = 'none'; if (!(e && e.message === 'stale')) st.el.querySelector('.ph').textContent = `Could not show page ${st.p + 1}`; }
+    if (e && e.message !== 'stale') console.warn('Page render failed', st.p + 1, e);
+  });
   return st.promise;
 }
 function unrenderPage(st) {

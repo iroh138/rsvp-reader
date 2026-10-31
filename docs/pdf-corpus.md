@@ -83,3 +83,16 @@ Komercijalni PDF od 169 strana (knjiga nije u repou, jer je zaštićena autorski
 
 Rezultat na toj knjizi: 19/19 inicijala tačno, 0 reči od kontrolnih znakova, naslovi celi. `PROCESSOR_VERSION` 6 → 7 (N6 menja sačuvan tekst).
 Napomena: na nekim stranama te kopije stoji „OceanofPDF.com“, oznaka sajta sa kog fajl potiče. Aplikacija je čita kao tekst jer se ne ponavlja kao zaglavlje.
+
+## N8 — reč podeljena crticom na kraju reda (prijavio vlasnik 2026-10-31, ISPRAVLJENO)
+
+Spajanje „impor-“ + „tant“ u „important“ radilo je samo kada PDF označi kraj reda, a crtica je obična „-“. Pronađena su još tri zapisa koja su davala dve reči:
+- red bez oznake kraja (sledeći red se prepoznaje samo po položaju), uz razmak na kraju reda ili bez njega;
+- tipografska crtica U+2010;
+- meka crtica U+00AD (česta u e-knjigama).
+
+Ispravka: `extractLines` ubacuje prelom reda i kada PDF ga ne označi. `LINE_HYPHEN` prihvata sve tri crtice, i u redu i na prelomu strane. Ne spaja se kada sledeći red počinje velikim slovom („North-“ / „West“) i kada je između novi pasus. Testovi: `tests/hyphen.test.mjs`; četiri nova slučaja padaju na starom kodu. Golden se nije promenio (testni PDF-ovi imaju oznake kraja reda).
+
+Usput: duže web adrese bez `https://` (npr. u fusnotama) više se ne seku na crticama. Duge složenice od 20+ znakova („great-great-grandmother“) i dalje se namerno dele na delove, da bi stale u prozor za čitanje.
+
+`PROCESSOR_VERSION` 7 → 8.

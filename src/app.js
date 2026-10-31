@@ -49,7 +49,7 @@ class Player {
 
 /* ===== Storage: IndexedDB for books, localStorage for small settings ===== */
 // PROCESSOR_VERSION 5: N1 page-number rule and the language-independent garbled check; older books are re-read once.
-const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 7;   // 6: drop caps, ellipsis; 7: control characters (N6). Schema versions: src/storage.js
+const DB_NAME = 'rsvp-reader', PROCESSOR_VERSION = 8;   // 6: drop caps, ellipsis; 7: control characters (N6); 8: line-end hyphens (N8). Schema versions: src/storage.js
 let dbPromise = null;
 function db() {
   if (!dbPromise) dbPromise = openDatabase(DB_NAME, {

@@ -51,6 +51,8 @@ export function factorOf(flags, n) {
 
 // Cut positions inside one whitespace-free run: after em dash / "--" between letters or digits,
 // after en dash between letters, and after each hyphen of a compound longer than 20 characters.
+// A word divided at the end of a line: a hyphen-minus, the typographic hyphen U+2010 or a soft hyphen U+00AD (N8).
+export const LINE_HYPHEN = /\p{L}[-\u2010\u00AD]$/u;
 export function cutRun(t) {
   const cuts = [];
   let m;
@@ -70,7 +72,7 @@ export function cutRun(t) {
   const out = [];
   for (const [a, b] of parts) {
     const s = t.slice(a, b);
-    if (s.length > 20 && s.includes('-') && !/:\/\/|^www\./i.test(s)) {
+    if (s.length > 20 && s.includes('-') && !s.includes('/') && !/^www\./i.test(s)) {   // web addresses, even without a scheme, stay whole
       let f = a;
       const re3 = /-(?=[^-])/g;
       while ((m = re3.exec(s))) { out.push([f, a + m.index + 1]); f = a + m.index + 1; }
@@ -98,7 +100,7 @@ export function tokenize(text, opts) {
   for (let i = 0; i < runs.length; i++) {
     const u = runs[i];
     let disp = u.raw, e = u.e, merged = false;
-    while (i + 1 < runs.length && runs[i + 1].para === u.para && /\p{L}-$/u.test(disp)
+    while (i + 1 < runs.length && runs[i + 1].para === u.para && LINE_HYPHEN.test(disp)
            && text.slice(e, runs[i + 1].s).includes('\n') && /^\p{Ll}/u.test(runs[i + 1].raw)) {
       disp = disp.slice(0, -1) + runs[i + 1].raw; e = runs[i + 1].e; i++; merged = true;
     }
@@ -190,8 +192,9 @@ export class Book {
       let a = this.first[p + 1] - 1; while (a >= this.first[p] && this.flags[a] & F.SKIP) a--;
       let b = this.first[p + 1]; while (b < this.first[p + 2] && this.flags[b] & F.SKIP) b++;
       if (a < this.first[p] || b >= this.first[p + 2]) continue;
-      const ta = this.rawText(a), tb = this.rawText(b);
-      if (!/\p{L}-$/u.test(ta) || !/^\p{Ll}/u.test(tb)) continue;
+      // the text as printed: a soft hyphen is already removed from the display text, so look at the page text
+      const pa = this.pages[p], la = a - this.first[p], ta = pa.text.slice(pa.tokStart[la], pa.tokEnd[la]), tb = this.rawText(b);
+      if (!LINE_HYPHEN.test(ta) || !/^\p{Ll}/u.test(tb)) continue;
       const merged = ta.slice(0, -1) + tb;
       this.join.set(a, merged);
       this.flags[a] = (this.flags[a] & ~P) | (this.flags[b] & P);
@@ -266,7 +269,11 @@ export function extractLines(items) {
     itemStarts.push(text.length);
     if (it.str.trim()) {
       const t = it.transform, x = t[4], y = t[5], h = Math.hypot(t[2], t[3]) || it.height || 0;
-      if (cur && Math.abs(y - cur.y) > Math.max(2, cur.h * 0.8)) close();   // new line without an end-of-line mark
+      if (cur && Math.abs(y - cur.y) > Math.max(2, cur.h * 0.8)) {   // new line without an end-of-line mark
+        close();
+        // N8: the text must still break here, or "impor-" + "tant" on the next line is not seen as one word
+        if (text && !/\n\s*$/.test(text)) { text += '\n'; itemStarts[itemStarts.length - 1] = text.length; }
+      }
       if (!cur) cur = { s: text.length, e: text.length, x0: x, x1: x + (it.width || 0), y, h };
       else { cur.x0 = Math.min(cur.x0, x); cur.x1 = Math.max(cur.x1, x + (it.width || 0)); cur.h = Math.max(cur.h, h); }
       text += it.str;
